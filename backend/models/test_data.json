@@ -1,0 +1,83 @@
+{
+  "transactions": [
+    {
+      "date": "2024-01-01",
+      "amount": -20000,
+      "type": "expense",
+      "category": "Fees"
+    },
+    {
+      "date": "2024-01-05",
+      "amount": -20000,
+      "type": "expense",
+      "category": "Savings"
+    },
+    {
+      "date": "2024-01-10",
+      "amount": -500,
+      "type": "expense",
+      "category": "Food"
+    },
+    {
+      "date": "2024-01-15",
+      "amount": -80,
+      "type": "expense",
+      "category": "Transportation"
+    },
+    {
+      "date": "2024-01-20",
+      "amount": -200,
+      "type": "expense",
+      "category": "Entertainment"
+    },
+    {
+      "date": "2024-02-01",
+      "amount": -1200,
+      "type": "expense",
+      "category": "Rent"
+    },
+    {
+      "date": "2024-02-05",
+      "amount": -180,
+      "type": "expense",
+      "category": "Food"
+    },
+    {
+      "date": "2024-02-10",
+      "amount": -90,
+      "type": "expense",
+      "category": "Transportation"
+    },
+    {
+      "date": "2024-02-15",
+      "amount": -250,
+      "type": "expense",
+      "category": "Entertainment"
+    },
+    {
+      "date": "2024-03-01",
+      "amount": -1200,
+      "type": "expense",
+      "category": "Rent"
+    },
+    {
+      "date": "2024-03-05",
+      "amount": -200,
+      "type": "expense",
+      "category": "Food"
+    },
+    {
+      "date": "2024-03-10",
+      "amount": -100,
+      "type": "expense",
+      "category": "Transportation"
+    },
+    {
+      "date": "2024-03-15",
+      "amount": -300,
+      "type": "expense",
+      "category": "Entertainment"
+    }
+  ],
+  "monthlySalary": 198
+} 

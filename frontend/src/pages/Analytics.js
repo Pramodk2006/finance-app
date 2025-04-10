@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -14,17 +14,29 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  Paper
-} from '@mui/material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import api from '../services/api';
+  Paper,
+} from "@mui/material";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import api from "../services/api";
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
 const Analytics = () => {
   const [analytics, setAnalytics] = useState(null);
   const [insights, setInsights] = useState(null);
-  const [period, setPeriod] = useState('month');
+  const [period, setPeriod] = useState("month");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,12 +48,12 @@ const Analytics = () => {
       setLoading(true);
       const [analyticsData, insightsData] = await Promise.all([
         api.get(`/analytics/spending?period=${period}`),
-        api.get('/analytics/insights')
+        api.get("/analytics/insights"),
       ]);
       setAnalytics(analyticsData.data);
       setInsights(insightsData.data);
     } catch (error) {
-      console.error('Failed to fetch analytics:', error);
+      console.error("Failed to fetch analytics:", error);
     } finally {
       setLoading(false);
     }
@@ -49,7 +61,12 @@ const Analytics = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="80vh"
+      >
         <CircularProgress />
       </Box>
     );
@@ -57,7 +74,12 @@ const Analytics = () => {
 
   return (
     <Box p={3}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+      >
         <Typography variant="h4">Spending Analytics</Typography>
         <FormControl variant="outlined" sx={{ minWidth: 120 }}>
           <InputLabel>Period</InputLabel>
@@ -85,10 +107,10 @@ const Analytics = () => {
                 ${analytics.totalSpending.toFixed(2)}
               </Typography>
               <Typography
-                color={analytics.totalChange >= 0 ? 'error' : 'success'}
+                color={analytics.totalChange >= 0 ? "error" : "success"}
                 variant="body2"
               >
-                {analytics.totalChange >= 0 ? '+' : ''}
+                {analytics.totalChange >= 0 ? "+" : ""}
                 {analytics.totalChange.toFixed(1)}% vs previous period
               </Typography>
             </CardContent>
@@ -121,7 +143,9 @@ const Analytics = () => {
                   <ListItem key={index}>
                     <ListItemText
                       primary={category.category}
-                      secondary={`$${category.currentTotal.toFixed(2)} (${category.change.toFixed(1)}%)`}
+                      secondary={`$${category.currentTotal.toFixed(
+                        2
+                      )} (${category.change.toFixed(1)}%)`}
                     />
                   </ListItem>
                 ))}
@@ -167,7 +191,10 @@ const Analytics = () => {
                   label
                 >
                   {analytics.categories.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -191,7 +218,11 @@ const Analytics = () => {
                     <ListItem key={index}>
                       <ListItemText
                         primary={transaction.description}
-                        secondary={`$${transaction.amount.toFixed(2)} - ${new Date(transaction.date).toLocaleDateString()}`}
+                        secondary={`$${transaction.amount.toFixed(
+                          2
+                        )} - ${new Date(
+                          transaction.date
+                        ).toLocaleDateString()}`}
                       />
                     </ListItem>
                   ))}
@@ -204,7 +235,9 @@ const Analytics = () => {
                     <ListItem key={index}>
                       <ListItemText
                         primary={transaction.description}
-                        secondary={`$${transaction.amount.toFixed(2)} - ${transaction.recurringFrequency}`}
+                        secondary={`$${transaction.amount.toFixed(2)} - ${
+                          transaction.recurringFrequency
+                        }`}
                       />
                     </ListItem>
                   ))}
@@ -222,7 +255,9 @@ const Analytics = () => {
                   <ListItem>
                     <ListItemText
                       primary="Average Transaction"
-                      secondary={`$${insights.averageTransactionAmount.toFixed(2)}`}
+                      secondary={`$${insights.averageTransactionAmount.toFixed(
+                        2
+                      )}`}
                     />
                   </ListItem>
                 </List>
@@ -235,4 +270,4 @@ const Analytics = () => {
   );
 };
 
-export default Analytics; 
+export default Analytics;

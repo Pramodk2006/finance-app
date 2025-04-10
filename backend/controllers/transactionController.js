@@ -1,12 +1,20 @@
-const asyncHandler = require('express-async-handler');
-const Transaction = require('../models/transactionModel');
-const Budget = require('../models/Budget');
+const asyncHandler = require("express-async-handler");
+const Transaction = require("../models/transactionModel");
+const Budget = require("../models/Budget");
 
 // @desc    Create a new transaction
 // @route   POST /api/transactions
 // @access  Private
 const createTransaction = asyncHandler(async (req, res) => {
-  const { description, amount, type, category, date, isRecurring, recurringFrequency } = req.body;
+  const {
+    description,
+    amount,
+    type,
+    category,
+    date,
+    isRecurring,
+    recurringFrequency,
+  } = req.body;
 
   // Create the transaction
   const transaction = await Transaction.create({
@@ -22,24 +30,21 @@ const createTransaction = asyncHandler(async (req, res) => {
   });
 
   // If it's an expense, update the corresponding budget
-  if (type === 'expense' && category) {
+  if (type === "expense" && category) {
     // Find the active budget for this category
     const budget = await Budget.findOne({
       user: req.user._id,
       category: category,
       isActive: true,
       startDate: { $lte: new Date() },
-      $or: [
-        { endDate: { $gte: new Date() } },
-        { endDate: null }
-      ]
+      $or: [{ endDate: { $gte: new Date() } }, { endDate: null }],
     });
 
     if (budget) {
       // Ensure both values are numbers before adding
       const currentSpent = parseFloat(budget.spent || 0);
       const transactionAmount = parseFloat(amount);
-      
+
       // Update the spent amount
       budget.spent = currentSpent + transactionAmount;
       await budget.save();
@@ -50,7 +55,7 @@ const createTransaction = asyncHandler(async (req, res) => {
     res.status(201).json(transaction);
   } else {
     res.status(400);
-    throw new Error('Invalid transaction data');
+    throw new Error("Invalid transaction data");
   }
 });
 
@@ -58,7 +63,9 @@ const createTransaction = asyncHandler(async (req, res) => {
 // @route   GET /api/transactions
 // @access  Private
 const getTransactions = asyncHandler(async (req, res) => {
-  const transactions = await Transaction.find({ user: req.user._id }).sort({ date: -1 });
+  const transactions = await Transaction.find({ user: req.user._id }).sort({
+    date: -1,
+  });
   res.json(transactions);
 });
 
@@ -72,7 +79,7 @@ const getTransactionById = asyncHandler(async (req, res) => {
     res.json(transaction);
   } else {
     res.status(404);
-    throw new Error('Transaction not found');
+    throw new Error("Transaction not found");
   }
 });
 
@@ -88,14 +95,18 @@ const updateTransaction = asyncHandler(async (req, res) => {
     transaction.type = req.body.type || transaction.type;
     transaction.category = req.body.category || transaction.category;
     transaction.date = req.body.date || transaction.date;
-    transaction.isRecurring = req.body.isRecurring !== undefined ? req.body.isRecurring : transaction.isRecurring;
-    transaction.recurringFrequency = req.body.recurringFrequency || transaction.recurringFrequency;
+    transaction.isRecurring =
+      req.body.isRecurring !== undefined
+        ? req.body.isRecurring
+        : transaction.isRecurring;
+    transaction.recurringFrequency =
+      req.body.recurringFrequency || transaction.recurringFrequency;
 
     const updatedTransaction = await transaction.save();
     res.json(updatedTransaction);
   } else {
     res.status(404);
-    throw new Error('Transaction not found');
+    throw new Error("Transaction not found");
   }
 });
 
@@ -107,10 +118,10 @@ const deleteTransaction = asyncHandler(async (req, res) => {
 
   if (transaction && transaction.user.toString() === req.user._id.toString()) {
     await transaction.deleteOne();
-    res.json({ message: 'Transaction removed' });
+    res.json({ message: "Transaction removed" });
   } else {
     res.status(404);
-    throw new Error('Transaction not found');
+    throw new Error("Transaction not found");
   }
 });
 
@@ -120,18 +131,18 @@ const deleteTransaction = asyncHandler(async (req, res) => {
 const getTransactionStats = asyncHandler(async (req, res) => {
   const { period } = req.query;
   let dateFilter = {};
-  
+
   // Calculate date range based on period
   const now = new Date();
-  if (period === 'week') {
+  if (period === "week") {
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - 7);
     dateFilter = { date: { $gte: weekStart } };
-  } else if (period === 'month') {
+  } else if (period === "month") {
     const monthStart = new Date(now);
     monthStart.setMonth(now.getMonth() - 1);
     dateFilter = { date: { $gte: monthStart } };
-  } else if (period === 'year') {
+  } else if (period === "year") {
     const yearStart = new Date(now);
     yearStart.setFullYear(now.getFullYear() - 1);
     dateFilter = { date: { $gte: yearStart } };
@@ -139,30 +150,35 @@ const getTransactionStats = asyncHandler(async (req, res) => {
 
   // Get income and expense totals
   const incomeTotal = await Transaction.aggregate([
-    { $match: { user: req.user._id, type: 'income', ...dateFilter } },
-    { $group: { _id: null, total: { $sum: '$amount' } } }
+    { $match: { user: req.user._id, type: "income", ...dateFilter } },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
   ]);
-  
+
   const expenseTotal = await Transaction.aggregate([
-    { $match: { user: req.user._id, type: 'expense', ...dateFilter } },
-    { $group: { _id: null, total: { $sum: '$amount' } } }
+    { $match: { user: req.user._id, type: "expense", ...dateFilter } },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
   ]);
 
   // Get category breakdown
   const categoryBreakdown = await Transaction.aggregate([
     { $match: { user: req.user._id, ...dateFilter } },
-    { $group: { _id: { category: '$category', type: '$type' }, total: { $sum: '$amount' } } },
-    { $sort: { total: -1 } }
+    {
+      $group: {
+        _id: { category: "$category", type: "$type" },
+        total: { $sum: "$amount" },
+      },
+    },
+    { $sort: { total: -1 } },
   ]);
 
   res.json({
     income: incomeTotal.length > 0 ? incomeTotal[0].total : 0,
     expense: expenseTotal.length > 0 ? expenseTotal[0].total : 0,
-    categories: categoryBreakdown.map(item => ({
+    categories: categoryBreakdown.map((item) => ({
       category: item._id.category,
       type: item._id.type,
-      total: item.total
-    }))
+      total: item.total,
+    })),
   });
 });
 
