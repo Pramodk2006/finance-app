@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -14,29 +14,17 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  Paper,
-} from "@mui/material";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import api from "../services/api";
+  Paper
+} from '@mui/material';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import api from '../services/api';
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const Analytics = () => {
   const [analytics, setAnalytics] = useState(null);
   const [insights, setInsights] = useState(null);
-  const [period, setPeriod] = useState("month");
+  const [period, setPeriod] = useState('month');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,25 +36,20 @@ const Analytics = () => {
       setLoading(true);
       const [analyticsData, insightsData] = await Promise.all([
         api.get(`/analytics/spending?period=${period}`),
-        api.get("/analytics/insights"),
+        api.get('/analytics/insights')
       ]);
       setAnalytics(analyticsData.data);
       setInsights(insightsData.data);
     } catch (error) {
-      console.error("Failed to fetch analytics:", error);
+      console.error('Failed to fetch analytics:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
+  if (loading || !analytics || !insights) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="80vh"
-      >
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
         <CircularProgress />
       </Box>
     );
@@ -74,12 +57,7 @@ const Analytics = () => {
 
   return (
     <Box p={3}>
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
-      >
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Spending Analytics</Typography>
         <FormControl variant="outlined" sx={{ minWidth: 120 }}>
           <InputLabel>Period</InputLabel>
@@ -104,14 +82,14 @@ const Analytics = () => {
                 Total Spending
               </Typography>
               <Typography variant="h4">
-                ${analytics.totalSpending.toFixed(2)}
+                ${(analytics?.totalSpending || 0).toFixed(2)}
               </Typography>
               <Typography
-                color={analytics.totalChange >= 0 ? "error" : "success"}
+                color={analytics?.totalChange >= 0 ? 'error' : 'success'}
                 variant="body2"
               >
-                {analytics.totalChange >= 0 ? "+" : ""}
-                {analytics.totalChange.toFixed(1)}% vs previous period
+                {analytics?.totalChange >= 0 ? '+' : ''}
+                {(analytics?.totalChange || 0).toFixed(1)}% vs previous period
               </Typography>
             </CardContent>
           </Card>
@@ -125,7 +103,7 @@ const Analytics = () => {
                 Monthly Average
               </Typography>
               <Typography variant="h4">
-                ${analytics.monthlyAverage.toFixed(2)}
+                ${(analytics?.monthlyAverage || 0).toFixed(2)}
               </Typography>
             </CardContent>
           </Card>
@@ -139,13 +117,11 @@ const Analytics = () => {
                 Top Categories
               </Typography>
               <List>
-                {analytics.topCategories.map((category, index) => (
+                {(analytics?.topCategories || []).map((category, index) => (
                   <ListItem key={index}>
                     <ListItemText
                       primary={category.category}
-                      secondary={`$${category.currentTotal.toFixed(
-                        2
-                      )} (${category.change.toFixed(1)}%)`}
+                      secondary={`$${(category.currentTotal || 0).toFixed(2)} (${(category.change || 0).toFixed(1)}%)`}
                     />
                   </ListItem>
                 ))}
@@ -161,7 +137,7 @@ const Analytics = () => {
               Spending by Category
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={analytics.categories}>
+              <BarChart data={analytics?.categories || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="category" />
                 <YAxis />
@@ -182,7 +158,7 @@ const Analytics = () => {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={analytics.categories}
+                  data={analytics?.categories || []}
                   dataKey="currentTotal"
                   nameKey="category"
                   cx="50%"
@@ -190,11 +166,8 @@ const Analytics = () => {
                   outerRadius={80}
                   label
                 >
-                  {analytics.categories.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
+                  {(analytics?.categories || []).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -214,15 +187,11 @@ const Analytics = () => {
               <Grid item xs={12} md={4}>
                 <Typography variant="subtitle1">Large Transactions</Typography>
                 <List>
-                  {insights.largeTransactions.map((transaction, index) => (
+                  {(insights?.largeTransactions || []).map((transaction, index) => (
                     <ListItem key={index}>
                       <ListItemText
                         primary={transaction.description}
-                        secondary={`$${transaction.amount.toFixed(
-                          2
-                        )} - ${new Date(
-                          transaction.date
-                        ).toLocaleDateString()}`}
+                        secondary={`$${(transaction.amount || 0).toFixed(2)} - ${new Date(transaction.date).toLocaleDateString()}`}
                       />
                     </ListItem>
                   ))}
@@ -231,13 +200,11 @@ const Analytics = () => {
               <Grid item xs={12} md={4}>
                 <Typography variant="subtitle1">Recurring Expenses</Typography>
                 <List>
-                  {insights.recurringExpenses.map((transaction, index) => (
+                  {(insights?.recurringExpenses || []).map((transaction, index) => (
                     <ListItem key={index}>
                       <ListItemText
                         primary={transaction.description}
-                        secondary={`$${transaction.amount.toFixed(2)} - ${
-                          transaction.recurringFrequency
-                        }`}
+                        secondary={`$${(transaction.amount || 0).toFixed(2)} - ${transaction.recurringFrequency}`}
                       />
                     </ListItem>
                   ))}
@@ -249,15 +216,13 @@ const Analytics = () => {
                   <ListItem>
                     <ListItemText
                       primary="Total Transactions"
-                      secondary={insights.totalTransactions}
+                      secondary={insights?.totalTransactions || 0}
                     />
                   </ListItem>
                   <ListItem>
                     <ListItemText
                       primary="Average Transaction"
-                      secondary={`$${insights.averageTransactionAmount.toFixed(
-                        2
-                      )}`}
+                      secondary={`$${(insights?.averageTransactionAmount || 0).toFixed(2)}`}
                     />
                   </ListItem>
                 </List>
@@ -270,4 +235,4 @@ const Analytics = () => {
   );
 };
 
-export default Analytics;
+export default Analytics; 
