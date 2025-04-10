@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
+const Budget = require('../models/Budget');
 const Transaction = require('../models/transactionModel');
-const Budget = require('../models/budgetModel');
 const { detectSpendingPatterns } = require('./spendingPatternDetector');
 
 // Generate budget recommendations based on spending patterns

@@ -30,6 +30,7 @@ const budgetSchema = new mongoose.Schema({
   startDate: {
     type: Date,
     required: true,
+    default: Date.now,
   },
   endDate: {
     type: Date,
@@ -42,20 +43,20 @@ const budgetSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
-  remaining: {
-    type: Number,
-    default: function() {
-      return this.amount;
-    },
-  },
 }, {
   timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
-// Calculate remaining amount before saving
-budgetSchema.pre('save', function(next) {
-  this.remaining = this.amount - this.spent;
-  next();
+// Virtual field to calculate remaining budget
+budgetSchema.virtual('remaining').get(function() {
+  return this.amount - (this.spent || 0);
+});
+
+// Virtual field to calculate percentage spent
+budgetSchema.virtual('percentageSpent').get(function() {
+  return ((this.spent || 0) / this.amount) * 100;
 });
 
 // Check if model exists before creating it

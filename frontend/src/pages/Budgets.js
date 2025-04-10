@@ -59,6 +59,7 @@ const Budgets = () => {
     period: 'monthly',
     startDate: new Date().toISOString().split('T')[0]
   });
+  const [formError, setFormError] = useState('');
 
   const handleOpenDialog = (budget = null) => {
     if (budget) {
@@ -106,6 +107,10 @@ const Budgets = () => {
         endDate: null
       };
 
+      if (!budgetData.name || !budgetData.amount || !budgetData.category || !budgetData.period) {
+        throw new Error('Please fill in all required fields');
+      }
+
       if (editingBudget) {
         await editBudget(editingBudget._id, budgetData);
       } else {
@@ -114,6 +119,7 @@ const Budgets = () => {
       handleCloseDialog();
     } catch (error) {
       console.error('Failed to save budget:', error);
+      setFormError(error.message);
     }
   };
 
@@ -227,6 +233,8 @@ const Budgets = () => {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
                 fullWidth
+                error={!formData.name}
+                helperText={!formData.name ? 'Budget name is required' : ''}
               />
               <TextField
                 label="Amount"
@@ -236,6 +244,8 @@ const Budgets = () => {
                 required
                 fullWidth
                 inputProps={{ min: 0, step: 0.01 }}
+                error={!formData.amount}
+                helperText={!formData.amount ? 'Amount is required' : ''}
               />
               <TextField
                 label="Category"
@@ -243,6 +253,8 @@ const Budgets = () => {
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 required
                 fullWidth
+                error={!formData.category}
+                helperText={!formData.category ? 'Category is required' : ''}
               />
               <TextField
                 select
@@ -251,6 +263,8 @@ const Budgets = () => {
                 onChange={(e) => setFormData({ ...formData, period: e.target.value })}
                 required
                 fullWidth
+                error={!formData.period}
+                helperText={!formData.period ? 'Period is required' : ''}
               >
                 <MenuItem value="daily">Daily</MenuItem>
                 <MenuItem value="weekly">Weekly</MenuItem>
@@ -272,7 +286,12 @@ const Budgets = () => {
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button type="submit" variant="contained" color="primary">
+            <Button 
+              type="submit" 
+              variant="contained" 
+              color="primary"
+              disabled={!formData.name || !formData.amount || !formData.category || !formData.period}
+            >
               {editingBudget ? 'Update' : 'Create'}
             </Button>
           </DialogActions>

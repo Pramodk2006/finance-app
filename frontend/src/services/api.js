@@ -185,4 +185,23 @@ export const updateBudgetSpent = async (id, amount) => {
   }
 };
 
+// Analytics API functions
+export const getSpendingAnalytics = async (period = 'month') => {
+  try {
+    const response = await api.get(`/analytics/spending?period=${period}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch spending analytics';
+  }
+};
+
+export const getSpendingInsights = async () => {
+  try {
+    const response = await api.get('/analytics/insights');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch spending insights';
+  }
+};
+
 export default api;

@@ -15,15 +15,10 @@ const getBudgets = asyncHandler(async (req, res) => {
 const createBudget = asyncHandler(async (req, res) => {
   const { name, amount, category, period, startDate, endDate } = req.body;
 
-  console.log('Creating budget with data:', {
-    user: req.user._id,
-    name,
-    amount,
-    category,
-    period,
-    startDate,
-    endDate
-  });
+  if (!name || !amount || !category || !period) {
+    res.status(400);
+    throw new Error('Please provide all required fields: name, amount, category, and period');
+  }
 
   const budget = await Budget.create({
     user: req.user._id,
@@ -31,11 +26,9 @@ const createBudget = asyncHandler(async (req, res) => {
     amount,
     category,
     period,
-    startDate,
+    startDate: startDate || new Date(),
     endDate,
   });
-
-  console.log('Budget created successfully:', budget);
 
   res.status(201).json(budget);
 });

@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Transaction = require('../models/transactionModel');
+const Budget = require('../models/Budget');
 
 // @desc    Create a new transaction
 // @route   POST /api/transactions
@@ -7,6 +8,7 @@ const Transaction = require('../models/transactionModel');
 const createTransaction = asyncHandler(async (req, res) => {
   const { description, amount, type, category, date, isRecurring, recurringFrequency } = req.body;
 
+  // Create the transaction
   const transaction = await Transaction.create({
     user: req.user._id,
     description,
@@ -18,6 +20,31 @@ const createTransaction = asyncHandler(async (req, res) => {
     isRecurring: isRecurring || false,
     recurringFrequency: recurringFrequency || null,
   });
+
+  // If it's an expense, update the corresponding budget
+  if (type === 'expense' && category) {
+    // Find the active budget for this category
+    const budget = await Budget.findOne({
+      user: req.user._id,
+      category: category,
+      isActive: true,
+      startDate: { $lte: new Date() },
+      $or: [
+        { endDate: { $gte: new Date() } },
+        { endDate: null }
+      ]
+    });
+
+    if (budget) {
+      // Ensure both values are numbers before adding
+      const currentSpent = parseFloat(budget.spent || 0);
+      const transactionAmount = parseFloat(amount);
+      
+      // Update the spent amount
+      budget.spent = currentSpent + transactionAmount;
+      await budget.save();
+    }
+  }
 
   if (transaction) {
     res.status(201).json(transaction);

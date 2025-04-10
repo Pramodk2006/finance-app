@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
-const { detectSpendingPatterns } = require('../services/spendingPatternDetector');
-const { generateBudgetRecommendations } = require('../services/budgetRecommender');
+const {
+  getSpendingAnalyticsController,
+  getSpendingInsightsController
+} = require('../controllers/analyticsController');
 
 // @desc    Get spending patterns
 // @route   GET /api/analytics/spending-patterns
@@ -31,5 +33,8 @@ router.get('/budget-recommendations', protect, async (req, res) => {
     res.status(500).json({ message: 'Failed to generate budget recommendations' });
   }
 });
+
+router.get('/spending', protect, getSpendingAnalyticsController);
+router.get('/insights', protect, getSpendingInsightsController);
 
 module.exports = router;

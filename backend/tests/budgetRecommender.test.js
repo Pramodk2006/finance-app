@@ -1,11 +1,14 @@
+const mongoose = require('mongoose');
+const Budget = require('../models/Budget');
+const Transaction = require('../models/Transaction');
 const { generateBudgetRecommendations } = require('../services/budgetRecommender');
-const Transaction = require('../models/transactionModel');
-const Budget = require('../models/budgetModel');
 const { detectSpendingPatterns } = require('../services/spendingPatternDetector');
 
+// Mock the models
+jest.mock('../models/Budget');
+jest.mock('../models/Transaction');
+
 // Mock the required modules
-jest.mock('../models/transactionModel');
-jest.mock('../models/budgetModel');
 jest.mock('../services/spendingPatternDetector');
 
 describe('Budget Recommender', () => {
