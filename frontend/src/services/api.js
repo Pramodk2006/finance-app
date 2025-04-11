@@ -1,23 +1,24 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "http://localhost:5000/api";
 
 // Create axios instance with base URL
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
-  withCredentials: true // Enable sending cookies
+  withCredentials: true, // Enable sending cookies
 });
 
 // Add request interceptor to include auth token in headers
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('userToken');
+    const token = localStorage.getItem("userToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      config.headers['Content-Type'] = config.headers['Content-Type'] || 'application/json';
+      config.headers["Content-Type"] =
+        config.headers["Content-Type"] || "application/json";
     }
     return config;
   },
@@ -32,9 +33,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid
-      localStorage.removeItem('userToken');
-      localStorage.removeItem('userData');
-      window.location.href = '/login';
+      localStorage.removeItem("userToken");
+      localStorage.removeItem("userData");
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   }
@@ -43,70 +44,70 @@ api.interceptors.response.use(
 // Auth services
 export const login = async (email, password) => {
   try {
-    const response = await api.post('/users/login', { email, password });
+    const response = await api.post("/users/login", { email, password });
     if (response.data.token) {
-      localStorage.setItem('userToken', response.data.token);
-      localStorage.setItem('userData', JSON.stringify(response.data));
+      localStorage.setItem("userToken", response.data.token);
+      localStorage.setItem("userData", JSON.stringify(response.data));
     }
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Login failed';
+    throw error.response?.data?.message || "Login failed";
   }
 };
 
 export const register = async (name, email, password) => {
   try {
-    const response = await api.post('/users', { name, email, password });
+    const response = await api.post("/users", { name, email, password });
     if (response.data.token) {
-      localStorage.setItem('userToken', response.data.token);
-      localStorage.setItem('userData', JSON.stringify(response.data));
+      localStorage.setItem("userToken", response.data.token);
+      localStorage.setItem("userData", JSON.stringify(response.data));
     }
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Registration failed';
+    throw error.response?.data?.message || "Registration failed";
   }
 };
 
 export const logout = () => {
-  localStorage.removeItem('userToken');
-  localStorage.removeItem('userData');
+  localStorage.removeItem("userToken");
+  localStorage.removeItem("userData");
 };
 
 export const getUserProfile = async () => {
   try {
-    const response = await api.get('/users/profile');
+    const response = await api.get("/users/profile");
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to get user profile';
+    throw error.response?.data?.message || "Failed to get user profile";
   }
 };
 
 export const updateUserProfile = async (userData) => {
   try {
-    const response = await api.put('/users/profile', userData);
+    const response = await api.put("/users/profile", userData);
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to update profile';
+    throw error.response?.data?.message || "Failed to update profile";
   }
 };
 
 // Transaction services
 export const getTransactions = async () => {
   try {
-    const response = await api.get('/transactions');
+    const response = await api.get("/transactions");
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch transactions';
+    throw error.response?.data?.message || "Failed to fetch transactions";
   }
 };
 
 export const createTransaction = async (transactionData) => {
   try {
-    const response = await api.post('/transactions', transactionData);
+    const response = await api.post("/transactions", transactionData);
     return response.data;
   } catch (error) {
-    console.error('Error creating transaction:', error.response?.data);
-    throw error.response?.data?.message || 'Failed to create transaction';
+    console.error("Error creating transaction:", error.response?.data);
+    throw error.response?.data?.message || "Failed to create transaction";
   }
 };
 
@@ -115,7 +116,7 @@ export const updateTransaction = async (id, transactionData) => {
     const response = await api.put(`/transactions/${id}`, transactionData);
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to update transaction';
+    throw error.response?.data?.message || "Failed to update transaction";
   }
 };
 
@@ -124,7 +125,7 @@ export const deleteTransaction = async (id) => {
     const response = await api.delete(`/transactions/${id}`);
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to delete transaction';
+    throw error.response?.data?.message || "Failed to delete transaction";
   }
 };
 
@@ -133,45 +134,49 @@ export const getTransactionStats = async (period) => {
     const response = await api.get(`/transactions/stats?period=${period}`);
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch transaction stats';
+    throw error.response?.data?.message || "Failed to fetch transaction stats";
   }
 };
 
 // AI services
 export const categorizeTransaction = async (description, amount) => {
   try {
-    const response = await api.post('/ai/categorize', { description, amount });
+    const response = await api.post("/ai/categorize", { description, amount });
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to categorize transaction';
+    throw error.response?.data?.message || "Failed to categorize transaction";
   }
 };
 
 export const trainAIModel = async (transactionId, category, approved) => {
   try {
-    const response = await api.post('/ai/train', { transactionId, category, approved });
+    const response = await api.post("/ai/train", {
+      transactionId,
+      category,
+      approved,
+    });
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to train AI model';
+    throw error.response?.data?.message || "Failed to train AI model";
   }
 };
 
 // Budget API functions
 export const getBudgets = async () => {
   try {
-    const response = await api.get('/budgets');
+    const response = await api.get("/budgets");
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch budgets';
+    throw error.response?.data?.message || "Failed to fetch budgets";
   }
 };
 
 export const createBudget = async (budgetData) => {
   try {
-    const response = await api.post('/budgets', budgetData);
+    const response = await api.post("/budgets", budgetData);
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to create budget';
+    throw error.response?.data?.message || "Failed to create budget";
   }
 };
 
@@ -180,7 +185,7 @@ export const updateBudget = async (id, budgetData) => {
     const response = await api.put(`/budgets/${id}`, budgetData);
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to update budget';
+    throw error.response?.data?.message || "Failed to update budget";
   }
 };
 
@@ -189,35 +194,26 @@ export const deleteBudget = async (id) => {
     const response = await api.delete(`/budgets/${id}`);
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to delete budget';
-  }
-};
-
-export const updateBudgetSpent = async (id, amount) => {
-  try {
-    const response = await api.put(`/budgets/${id}/spent`, { amount });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data?.message || 'Failed to update budget spent amount';
+    throw error.response?.data?.message || "Failed to delete budget";
   }
 };
 
 // Analytics API functions
-export const getSpendingAnalytics = async (period = 'month') => {
+export const getSpendingAnalytics = async (period = "month") => {
   try {
     const response = await api.get(`/analytics/spending?period=${period}`);
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch spending analytics';
+    throw error.response?.data?.message || "Failed to fetch spending analytics";
   }
 };
 
 export const getSpendingInsights = async () => {
   try {
-    const response = await api.get('/analytics/insights');
+    const response = await api.get("/analytics/insights");
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch spending insights';
+    throw error.response?.data?.message || "Failed to fetch spending insights";
   }
 };
 

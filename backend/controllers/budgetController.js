@@ -1,5 +1,5 @@
-const Budget = require('../models/Budget');
-const asyncHandler = require('express-async-handler');
+const Budget = require("../models/Budget");
+const asyncHandler = require("express-async-handler");
 
 // @desc    Get all budgets for the authenticated user
 // @route   GET /api/budgets
@@ -17,7 +17,9 @@ const createBudget = asyncHandler(async (req, res) => {
 
   if (!name || !amount || !category || !period) {
     res.status(400);
-    throw new Error('Please provide all required fields: name, amount, category, and period');
+    throw new Error(
+      "Please provide all required fields: name, amount, category, and period"
+    );
   }
 
   const budget = await Budget.create({
@@ -37,18 +39,19 @@ const createBudget = asyncHandler(async (req, res) => {
 // @route   PUT /api/budgets/:id
 // @access  Private
 const updateBudget = asyncHandler(async (req, res) => {
-  const { name, amount, category, period, startDate, endDate, isActive } = req.body;
+  const { name, amount, category, period, startDate, endDate, isActive } =
+    req.body;
 
   const budget = await Budget.findById(req.params.id);
 
   if (!budget) {
     res.status(404);
-    throw new Error('Budget not found');
+    throw new Error("Budget not found");
   }
 
   if (budget.user.toString() !== req.user._id.toString()) {
     res.status(401);
-    throw new Error('Not authorized');
+    throw new Error("Not authorized");
   }
 
   budget.name = name || budget.name;
@@ -71,39 +74,16 @@ const deleteBudget = asyncHandler(async (req, res) => {
 
   if (!budget) {
     res.status(404);
-    throw new Error('Budget not found');
+    throw new Error("Budget not found");
   }
 
   if (budget.user.toString() !== req.user._id.toString()) {
     res.status(401);
-    throw new Error('Not authorized');
+    throw new Error("Not authorized");
   }
 
   await Budget.findByIdAndDelete(req.params.id);
-  res.json({ message: 'Budget removed' });
-});
-
-// @desc    Update budget spent amount
-// @route   PUT /api/budgets/:id/spent
-// @access  Private
-const updateBudgetSpent = asyncHandler(async (req, res) => {
-  const { amount } = req.body;
-
-  const budget = await Budget.findById(req.params.id);
-
-  if (!budget) {
-    res.status(404);
-    throw new Error('Budget not found');
-  }
-
-  if (budget.user.toString() !== req.user._id.toString()) {
-    res.status(401);
-    throw new Error('Not authorized');
-  }
-
-  budget.spent = amount;
-  const updatedBudget = await budget.save();
-  res.json(updatedBudget);
+  res.json({ message: "Budget removed" });
 });
 
 module.exports = {
@@ -111,5 +91,4 @@ module.exports = {
   createBudget,
   updateBudget,
   deleteBudget,
-  updateBudgetSpent,
-}; 
+};

@@ -2,6 +2,45 @@ const asyncHandler = require("express-async-handler");
 const Transaction = require("../models/transactionModel");
 const Budget = require("../models/Budget");
 
+// New function to handle budget updates
+const updateBudgetOnTransaction = async (userId, category, amount) => {
+  try {
+    // Find the active budget for this category
+    const budget = await Budget.findOne({
+      user: userId,
+      category: category.toLowerCase(),
+      isActive: true,
+    });
+
+    if (!budget) {
+      console.log(`No active budget found for category: ${category}`);
+      return null;
+    }
+
+    // Calculate new spent amount
+    const newSpent = budget.spent + parseFloat(amount);
+
+    // Update the budget
+    const updatedBudget = await Budget.findByIdAndUpdate(
+      budget._id,
+      { $set: { spent: newSpent } },
+      { new: true } // Return the updated document
+    );
+
+    console.log("Budget updated:", {
+      category: updatedBudget.category,
+      previousSpent: budget.spent,
+      newSpent: updatedBudget.spent,
+      totalBudget: updatedBudget.amount,
+    });
+
+    return updatedBudget;
+  } catch (error) {
+    console.error("Error updating budget:", error);
+    throw error;
+  }
+};
+
 // @desc    Create a new transaction
 // @route   POST /api/transactions
 // @access  Private
@@ -17,18 +56,26 @@ const createTransaction = asyncHandler(async (req, res) => {
       recurringFrequency,
     } = req.body;
 
-    if (!req.user || !req.user._id) {
-      res.status(401);
-      throw new Error('User not authenticated');
-    }
-
-    // Create the transaction with the authenticated user's ID
-    const transaction = await Transaction.create({
-      userId: req.user._id,
+    console.log("Received transaction request:", {
       description,
       amount,
       type,
       category,
+      date,
+    });
+
+    if (!req.user || !req.user._id) {
+      res.status(401);
+      throw new Error("User not authenticated");
+    }
+
+    // Create the transaction
+    const transaction = await Transaction.create({
+      userId: req.user._id,
+      description,
+      amount: parseFloat(amount),
+      type,
+      category: category ? category.trim().toLowerCase() : category, // Normalize category
       date: date || Date.now(),
       originalDescription: description,
       aiCategorized: false,
@@ -36,34 +83,43 @@ const createTransaction = asyncHandler(async (req, res) => {
       recurringFrequency: recurringFrequency || null,
     });
 
+    console.log("Transaction created successfully:", {
+      id: transaction._id,
+      amount: transaction.amount,
+      type: transaction.type,
+      category: transaction.category,
+    });
+
+    let updatedBudget = null;
+
     // If it's an expense, update the corresponding budget
     if (type === "expense" && category) {
-      // Find the active budget for this category
-      const budget = await Budget.findOne({
-        userId: req.user._id,
-        category: category,
-        isActive: true,
-        startDate: { $lte: new Date() },
-        $or: [{ endDate: { $gte: new Date() } }, { endDate: null }],
-      });
+      console.log("Processing expense transaction for budget update");
 
-      if (budget) {
-        // Ensure both values are numbers before adding
-        const currentSpent = parseFloat(budget.spent || 0);
-        const transactionAmount = parseFloat(amount);
-
-        // Update the spent amount
-        budget.spent = currentSpent + transactionAmount;
-        await budget.save();
+      try {
+        updatedBudget = await updateBudgetOnTransaction(
+          req.user._id,
+          category,
+          amount
+        );
+      } catch (budgetError) {
+        console.error("Budget update failed:", budgetError);
+        // We'll still return the transaction even if budget update fails
       }
     }
 
-    res.status(201).json(transaction);
+    res.status(201).json({
+      transaction,
+      budgetUpdated: !!updatedBudget,
+      updatedBudget,
+      message: "Transaction created successfully",
+    });
   } catch (error) {
-    console.error('Error creating transaction:', error);
-    res.status(500).json({ 
-      message: 'Failed to create transaction',
-      error: error.message 
+    console.error("Error in createTransaction:", error);
+    res.status(500).json({
+      message: "Failed to create transaction",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 });
@@ -84,7 +140,10 @@ const getTransactions = asyncHandler(async (req, res) => {
 const getTransactionById = asyncHandler(async (req, res) => {
   const transaction = await Transaction.findById(req.params.id);
 
-  if (transaction && transaction.userId.toString() === req.user._id.toString()) {
+  if (
+    transaction &&
+    transaction.userId.toString() === req.user._id.toString()
+  ) {
     res.json(transaction);
   } else {
     res.status(404);
@@ -98,7 +157,10 @@ const getTransactionById = asyncHandler(async (req, res) => {
 const updateTransaction = asyncHandler(async (req, res) => {
   const transaction = await Transaction.findById(req.params.id);
 
-  if (transaction && transaction.userId.toString() === req.user._id.toString()) {
+  if (
+    transaction &&
+    transaction.userId.toString() === req.user._id.toString()
+  ) {
     transaction.description = req.body.description || transaction.description;
     transaction.amount = req.body.amount || transaction.amount;
     transaction.type = req.body.type || transaction.type;
@@ -125,7 +187,10 @@ const updateTransaction = asyncHandler(async (req, res) => {
 const deleteTransaction = asyncHandler(async (req, res) => {
   const transaction = await Transaction.findById(req.params.id);
 
-  if (transaction && transaction.userId.toString() === req.user._id.toString()) {
+  if (
+    transaction &&
+    transaction.userId.toString() === req.user._id.toString()
+  ) {
     await transaction.remove();
     res.json({ message: "Transaction removed" });
   } else {
