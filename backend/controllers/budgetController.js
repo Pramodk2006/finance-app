@@ -86,9 +86,33 @@ const deleteBudget = asyncHandler(async (req, res) => {
   res.json({ message: "Budget removed" });
 });
 
+// @desc    Update budget spent amount
+// @route   PUT /api/budgets/:id/spent
+// @access  Private
+const updateBudgetSpent = asyncHandler(async (req, res) => {
+  const { amount } = req.body;
+
+  const budget = await Budget.findById(req.params.id);
+
+  if (!budget) {
+    res.status(404);
+    throw new Error("Budget not found");
+  }
+
+  if (budget.user.toString() !== req.user._id.toString()) {
+    res.status(401);
+    throw new Error("Not authorized");
+  }
+
+  budget.spent = amount;
+  const updatedBudget = await budget.save();
+  res.json(updatedBudget);
+});
+
 module.exports = {
   getBudgets,
   createBudget,
   updateBudget,
   deleteBudget,
+  updateBudgetSpent,
 };

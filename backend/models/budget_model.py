@@ -66,13 +66,10 @@ class BudgetPredictor:
         # Sort by date
         df = df.sort_values('ds')
         
-        # Group by date and sum transactions
-        df = df.groupby('ds')['y'].sum().reset_index()
-        
-        # For expenses, keep them as negative values
-        # For income, keep them as positive values
-        # This way, the sum will represent net income/expense
-        
+        # Add category if not present
+        if 'category' not in df.columns:
+            df['category'] = ''
+            
         return df
     
     def train_and_predict(self, transactions, monthly_salary):
@@ -82,12 +79,20 @@ class BudgetPredictor:
         if len(df) < 1:
             raise ValueError("Not enough transaction data for predictions. Please add more transactions.")
         
-        # Calculate monthly totals
-        monthly_totals = df.groupby(df['ds'].dt.to_period('M'))['y'].sum()
+        # Separate savings from expenses
+        savings_mask = df['category'].str.lower().str.contains('savings', na=False)
+        savings_df = df[savings_mask].copy()
+        expenses_df = df[~savings_mask].copy()
+        
+        # Calculate monthly totals (excluding savings)
+        monthly_totals = expenses_df.groupby(expenses_df['ds'].dt.to_period('M'))['y'].sum()
+        
+        # Calculate actual savings
+        actual_savings = abs(savings_df['y'].sum()) if not savings_df.empty else 0
         
         # Calculate average monthly spend (absolute value of expenses)
-        # We consider negative values as expenses
-        expenses = df[df['y'] < 0]
+        # We consider negative values as expenses, excluding savings
+        expenses = expenses_df[expenses_df['y'] < 0]
         if not expenses.empty:
             monthly_expenses = expenses.groupby(expenses['ds'].dt.to_period('M'))['y'].sum().abs()
             average_monthly_spend = monthly_expenses.mean() if not monthly_expenses.empty else 0
@@ -104,14 +109,10 @@ class BudgetPredictor:
         # Add a small trend factor to account for changes
         predicted_spend = average_monthly_spend + (trend * 0.5)
         
-        # Validate monthly salary is reasonable
-        if monthly_salary < max(abs(df['y'])):
-            alerts.append("⚠️ Note: Your monthly salary is less than your largest expense. Consider reviewing your salary input or expenses.")
-            
         # Calculate suggested savings (30% of salary)
         suggested_savings = monthly_salary * 0.3
         
-        # Calculate available budget
+        # Calculate available budget (excluding savings from expenses)
         available_budget = monthly_salary - suggested_savings
         
         # Create future dates for visualization
@@ -132,6 +133,11 @@ class BudgetPredictor:
         
         # Generate spending alerts
         alerts = []
+        
+        # Validate monthly salary against expenses (excluding savings)
+        if monthly_salary < max(abs(expenses_df['y'])):
+            alerts.append("⚠️ Note: Your monthly salary is less than your largest expense. Consider reviewing your salary input or expenses.")
+        
         if predicted_spend > available_budget:
             alerts.append(f"⚠️ Warning: Predicted spending (${predicted_spend:.2f}) exceeds available budget (${available_budget:.2f})")
         
@@ -141,17 +147,24 @@ class BudgetPredictor:
         if average_monthly_spend > monthly_salary:
             alerts.append("🚨 Critical: Your average monthly spending exceeds your monthly salary! Please review your expenses or verify your salary input.")
         
+        # Savings-related alerts
+        if actual_savings < suggested_savings:
+            alerts.append(f"💡 Tip: Your current savings (${actual_savings:.2f}) are below the suggested amount (${suggested_savings:.2f}). Consider increasing your savings.")
+        elif actual_savings > suggested_savings:
+            alerts.append("👍 Great job! You're saving more than the suggested amount.")
+        
         if predicted_spend < 0.5 * average_monthly_spend:
             alerts.append("💡 Tip: Your predicted spending is unusually low. Consider saving the extra money!")
         elif predicted_spend > 1.5 * average_monthly_spend:
             alerts.append("⚠️ Alert: Your predicted spending is 50% higher than your average. Consider reviewing your expenses.")
         
-        # Calculate category-wise spending
-        category_insights = self._get_category_insights(df) if 'category' in transactions[0] else []
+        # Calculate category-wise spending (excluding savings)
+        category_insights = self._get_category_insights(expenses_df)
         
         result = {
             'predicted_monthly_spend': float(predicted_spend),
             'suggested_savings': float(suggested_savings),
+            'actual_savings': float(actual_savings),
             'available_budget': float(available_budget),
             'average_monthly_spend': float(average_monthly_spend),
             'alerts': alerts,
@@ -174,6 +187,9 @@ class BudgetPredictor:
         categories = df['category'].unique()
         
         for category in categories:
+            if not category or category.lower() == 'savings':
+                continue
+                
             category_data = df[df['category'] == category]
             category_total = abs(category_data['y'].sum())
             category_avg = abs(category_data['y'].mean())

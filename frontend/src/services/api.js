@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = `http://localhost:${
+  process.env.REACT_APP_API_PORT || 5000
+}/api`;
 
 // Create axios instance with base URL
 const api = axios.create({
@@ -8,7 +10,8 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // Enable sending cookies
+  withCredentials: true,
+  timeout: 30000, // Increased timeout to 30 seconds
 });
 
 // Add request interceptor to include auth token in headers
@@ -23,15 +26,28 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error("Request interceptor error:", error);
     return Promise.reject(error);
   }
 );
 
-// Add response interceptor to handle token expiration
+// Add response interceptor for better error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.code === "ERR_NETWORK") {
+      console.error("Network error - Is the backend server running?");
+      throw new Error(
+        "Cannot connect to server. Please make sure the backend server is running."
+      );
+    } else if (error.code === "ECONNABORTED") {
+      console.error(
+        "Request timeout - The server is taking too long to respond"
+      );
+      throw new Error(
+        "The server is taking too long to respond. Please try again."
+      );
+    } else if (error.response?.status === 401) {
       // Token expired or invalid
       localStorage.removeItem("userToken");
       localStorage.removeItem("userData");
@@ -44,27 +60,60 @@ api.interceptors.response.use(
 // Auth services
 export const login = async (email, password) => {
   try {
+    console.log("Attempting login for:", email); // Debug log
     const response = await api.post("/users/login", { email, password });
-    if (response.data.token) {
-      localStorage.setItem("userToken", response.data.token);
-      localStorage.setItem("userData", JSON.stringify(response.data));
+
+    if (!response.data || !response.data.token) {
+      console.error("Invalid login response:", response.data);
+      throw new Error("Login failed: Invalid server response");
     }
+
+    // Store auth data
+    localStorage.setItem("userToken", response.data.token);
+    localStorage.setItem("userData", JSON.stringify(response.data));
+
+    console.log("Login successful"); // Debug log
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || "Login failed";
+    console.error("Login error:", error.response?.data || error);
+    if (error.response?.data?.message) {
+      throw error.response.data.message;
+    } else if (error.response?.status === 401) {
+      throw new Error("Invalid email or password");
+    } else if (error.response?.status === 400) {
+      throw new Error("Please provide both email and password");
+    } else {
+      throw new Error("Login failed. Please try again.");
+    }
   }
 };
 
 export const register = async (name, email, password) => {
   try {
+    console.log("Registering user:", { name, email }); // Debug log
     const response = await api.post("/users", { name, email, password });
-    if (response.data.token) {
-      localStorage.setItem("userToken", response.data.token);
-      localStorage.setItem("userData", JSON.stringify(response.data));
+
+    if (!response.data || !response.data.token) {
+      console.error("Invalid registration response:", response.data);
+      throw new Error("Registration failed: Invalid server response");
     }
+
+    // Store auth data
+    localStorage.setItem("userToken", response.data.token);
+    localStorage.setItem("userData", JSON.stringify(response.data));
+
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || "Registration failed";
+    console.error("Registration error:", error.response?.data || error);
+    if (error.response?.data?.message) {
+      throw error.response.data.message;
+    } else if (error.response?.status === 400) {
+      throw new Error("Invalid registration data. Please check your inputs.");
+    } else if (error.response?.status === 409) {
+      throw new Error("User already exists with this email.");
+    } else {
+      throw new Error("Registration failed. Please try again.");
+    }
   }
 };
 
@@ -198,6 +247,17 @@ export const deleteBudget = async (id) => {
   }
 };
 
+export const updateBudgetSpent = async (id, amount) => {
+  try {
+    const response = await api.put(`/budgets/${id}/spent`, { amount });
+    return response.data;
+  } catch (error) {
+    throw (
+      error.response?.data?.message || "Failed to update budget spent amount"
+    );
+  }
+};
+
 // Analytics API functions
 export const getSpendingAnalytics = async (period = "month") => {
   try {
@@ -214,6 +274,20 @@ export const getSpendingInsights = async () => {
     return response.data;
   } catch (error) {
     throw error.response?.data?.message || "Failed to fetch spending insights";
+  }
+};
+
+// Receipt scanning service
+export const scanReceipt = async (formData) => {
+  try {
+    const response = await api.post("/transactions/scan-receipt", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || "Failed to scan receipt";
   }
 };
 

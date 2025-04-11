@@ -52,6 +52,13 @@ const PrivateRoute = ({ children }) => {
 };
 
 function App() {
+  // Clean up any statement-related data in localStorage
+  React.useEffect(() => {
+    localStorage.removeItem("lastUploadedStatement");
+    localStorage.removeItem("statementFileName");
+    localStorage.removeItem("currentStatement");
+  }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -60,7 +67,13 @@ function App() {
           <BudgetProvider>
             <AIProvider>
               <Router>
-                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: "100vh",
+                  }}
+                >
                   <Header />
                   <Box component="main" sx={{ flexGrow: 1 }}>
                     <Routes>

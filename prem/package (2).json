@@ -1,0 +1,38 @@
+{
+  "name": "money-master",
+  "version": "1.0.0",
+  "description": "A comprehensive personal finance management application",
+  "main": "index.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "server": "nodemon backend/server.js",
+    "client": "cd frontend && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-all": "npm install && cd frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "test": "cd backend && npm test"
+  },
+  "keywords": [
+    "finance",
+    "budget",
+    "money",
+    "management",
+    "ai",
+    "chatbot"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@mui/material": "^7.0.2",
+    "@mui/x-date-pickers": "^7.28.3",
+    "concurrently": "^8.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "mongoose": "^8.13.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

@@ -1,6 +1,6 @@
-const asyncHandler = require('express-async-handler');
-const User = require('../models/userModel');
-const generateToken = require('../utils/generateToken');
+const asyncHandler = require("express-async-handler");
+const User = require("../models/userModel");
+const generateToken = require("../utils/generateToken");
 
 // @desc    Auth user & get token
 // @route   POST /api/users/login
@@ -20,7 +20,7 @@ const authUser = asyncHandler(async (req, res) => {
     });
   } else {
     res.status(401);
-    throw new Error('Invalid email or password');
+    throw new Error("Invalid email or password");
   }
 });
 
@@ -34,7 +34,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   if (userExists) {
     res.status(400);
-    throw new Error('User already exists');
+    throw new Error("User already exists");
   }
 
   const user = await User.create({
@@ -50,10 +50,11 @@ const registerUser = asyncHandler(async (req, res) => {
       email: user.email,
       isAdmin: user.isAdmin,
       token: generateToken(user._id),
+      message: "User registered successfully",
     });
   } else {
     res.status(400);
-    throw new Error('Invalid user data');
+    throw new Error("Invalid user data");
   }
 });
 
@@ -69,10 +70,11 @@ const getUserProfile = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
+      preferences: user.preferences || {},
     });
   } else {
     res.status(404);
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 });
 
@@ -88,6 +90,12 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     if (req.body.password) {
       user.password = req.body.password;
     }
+    if (req.body.preferences) {
+      user.preferences = {
+        ...user.preferences,
+        ...req.body.preferences,
+      };
+    }
 
     const updatedUser = await user.save();
 
@@ -96,11 +104,13 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       name: updatedUser.name,
       email: updatedUser.email,
       isAdmin: updatedUser.isAdmin,
+      preferences: updatedUser.preferences || {},
       token: generateToken(updatedUser._id),
+      message: "Profile updated successfully",
     });
   } else {
     res.status(404);
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 });
 

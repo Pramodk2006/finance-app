@@ -72,7 +72,10 @@ const Analytics = () => {
       console.log("Insights Data:", insightsData.data);
 
       // Validate and log the structure of analytics data
-      if (!analyticsData.data || !Array.isArray(analyticsData.data.timeSeriesData)) {
+      if (
+        !analyticsData.data ||
+        !Array.isArray(analyticsData.data.timeSeriesData)
+      ) {
         console.error("Invalid analytics data structure:", analyticsData.data);
         throw new Error("Invalid analytics data structure");
       }
@@ -325,48 +328,40 @@ const Analytics = () => {
               <Grid item xs={12} md={4}>
                 <Typography variant="subtitle1">Large Transactions</Typography>
                 <List>
-                  {largeTransactions.map(
-                    (transaction, index) => (
-                      <React.Fragment key={index}>
-                        <ListItem>
-                          <ListItemText
-                            primary={transaction.description}
-                            secondary={`$${(transaction.amount || 0).toFixed(
-                              2
-                            )} - ${new Date(
-                              transaction.date
-                            ).toLocaleDateString()}`}
-                          />
-                        </ListItem>
-                        {index < largeTransactions.length - 1 && (
-                          <Divider />
-                        )}
-                      </React.Fragment>
-                    )
-                  )}
+                  {largeTransactions.map((transaction, index) => (
+                    <React.Fragment key={index}>
+                      <ListItem>
+                        <ListItemText
+                          primary={transaction.description}
+                          secondary={`$${(transaction.amount || 0).toFixed(
+                            2
+                          )} - ${new Date(
+                            transaction.date
+                          ).toLocaleDateString()}`}
+                        />
+                      </ListItem>
+                      {index < largeTransactions.length - 1 && <Divider />}
+                    </React.Fragment>
+                  ))}
                 </List>
               </Grid>
 
               <Grid item xs={12} md={4}>
                 <Typography variant="subtitle1">Recurring Expenses</Typography>
                 <List>
-                  {recurringExpenses.map(
-                    (transaction, index) => (
-                      <React.Fragment key={index}>
-                        <ListItem>
-                          <ListItemText
-                            primary={transaction.description}
-                            secondary={`$${(transaction.amount || 0).toFixed(
-                              2
-                            )} - ${transaction.recurringFrequency}`}
-                          />
-                        </ListItem>
-                        {index < recurringExpenses.length - 1 && (
-                          <Divider />
-                        )}
-                      </React.Fragment>
-                    )
-                  )}
+                  {recurringExpenses.map((transaction, index) => (
+                    <React.Fragment key={index}>
+                      <ListItem>
+                        <ListItemText
+                          primary={transaction.description}
+                          secondary={`$${(transaction.amount || 0).toFixed(
+                            2
+                          )} - ${transaction.recurringFrequency}`}
+                        />
+                      </ListItem>
+                      {index < recurringExpenses.length - 1 && <Divider />}
+                    </React.Fragment>
+                  ))}
                 </List>
               </Grid>
 
@@ -383,9 +378,7 @@ const Analytics = () => {
                   <ListItem>
                     <ListItemText
                       primary="Average Transaction"
-                      secondary={`$${(
-                        averageTransactionAmount
-                      ).toFixed(2)}`}
+                      secondary={`$${averageTransactionAmount.toFixed(2)}`}
                     />
                   </ListItem>
                   <Divider />

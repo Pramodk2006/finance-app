@@ -1,5 +1,6 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
+const multer = require("multer");
 const {
   createTransaction,
   getTransactions,
@@ -7,21 +8,40 @@ const {
   updateTransaction,
   deleteTransaction,
   getTransactionStats,
-} = require('../controllers/transactionController');
-const { protect } = require('../middleware/authMiddleware');
+  getTransactionsByCategory,
+  getRecurringTransactions,
+  scanReceipt,
+} = require("../controllers/transactionController");
+const { protect } = require("../middleware/authMiddleware");
+
+// Configure multer for receipt uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+});
 
 // All routes are protected
 router.use(protect);
 
 // Get transaction statistics
-router.get('/stats', getTransactionStats);
+router.get("/stats", getTransactionStats);
+
+// Get transactions by category
+router.get("/category/:category", getTransactionsByCategory);
+
+// Get recurring transactions
+router.get("/recurring", getRecurringTransactions);
+
+// Scan receipt
+router.post("/scan-receipt", upload.single("receipt"), scanReceipt);
 
 // CRUD operations
-router.route('/')
-  .post(createTransaction)
-  .get(getTransactions);
+router.route("/").post(createTransaction).get(getTransactions);
 
-router.route('/:id')
+router
+  .route("/:id")
   .get(getTransactionById)
   .put(updateTransaction)
   .delete(deleteTransaction);

@@ -25,11 +25,16 @@
   "dependencies": {
     "@mui/material": "^7.0.2",
     "@mui/x-date-pickers": "^7.28.3",
+    "@google/generative-ai": "^0.24.0",
+    "axios": "^1.8.4",
     "concurrently": "^8.2.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
-    "mongoose": "^8.13.2"
+    "mongoose": "^8.13.2",
+    "natural": "^6.2.0",
+    "openai": "^4.28.0",
+    "tesseract.js": "^6.0.1"
   },
   "engines": {
     "node": ">=14.0.0"

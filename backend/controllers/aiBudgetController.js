@@ -48,27 +48,51 @@ const getAIBudgetPredictions = async (req, res) => {
       `budget_input_${Date.now()}.json`
     );
     fs.writeFileSync(tempFilePath, JSON.stringify(inputData), "utf8");
+    console.log("Created temporary file:", tempFilePath);
 
-    console.log(`Created temporary file: ${tempFilePath}`);
+    // Try different Python commands in order of preference
+    const pythonCommands = [
+      "python3",
+      "python",
+      "py -3",
+      "C:\\Users\\HP\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\python.exe",
+    ];
 
-    // Use py launcher instead of python command
-    const pythonProcess = spawn(
-      "py",
-      [
-        "-3", // Use Python 3
-        "-X",
-        "utf8", // Force UTF-8 encoding
-        path.join(__dirname, "../models/budget_model.py"),
-        tempFilePath,
-      ],
-      {
-        env: {
-          ...process.env,
-          PYTHONIOENCODING: "utf-8",
-          PYTHONUTF8: "1",
-        },
+    let pythonProcess = null;
+    let pythonError = null;
+
+    // Try each Python command until one works
+    for (const cmd of pythonCommands) {
+      try {
+        pythonProcess = spawn(
+          cmd,
+          [
+            path.join(__dirname, "..", "models", "budget_model.py"),
+            tempFilePath,
+          ],
+          {
+            stdio: ["pipe", "pipe", "pipe"],
+            env: {
+              ...process.env,
+              PYTHONIOENCODING: "utf-8",
+              PYTHONUTF8: "1",
+            },
+          }
+        );
+        break; // If spawn succeeds, break the loop
+      } catch (err) {
+        pythonError = err;
+        continue; // Try next command if this one fails
       }
-    );
+    }
+
+    if (!pythonProcess) {
+      throw new Error(
+        `Failed to start Python process: ${
+          pythonError?.message || "No Python interpreter found"
+        }`
+      );
+    }
 
     let stdoutData = "";
     let stderrData = "";
@@ -98,9 +122,9 @@ const getAIBudgetPredictions = async (req, res) => {
           console.error(`Failed to delete temporary file: ${err.message}`);
         }
 
-        console.log("Python process exited with code:", code); // Debug log
-        console.log("Final stdout:", stdoutData); // Debug log
-        console.log("Final stderr:", stderrData); // Debug log
+        console.log("Python process exited with code:", code);
+        console.log("Final stdout:", stdoutData);
+        console.log("Final stderr:", stderrData);
 
         if (code !== 0) {
           console.error("Process exited with code:", code);
@@ -113,7 +137,7 @@ const getAIBudgetPredictions = async (req, res) => {
 
         try {
           // Use only stdout data for parsing JSON
-          console.log("Attempting to parse JSON from stdout:", stdoutData); // Debug log
+          console.log("Attempting to parse JSON from stdout:", stdoutData);
 
           // Check if stdout is empty
           if (!stdoutData.trim()) {
@@ -121,10 +145,9 @@ const getAIBudgetPredictions = async (req, res) => {
           }
 
           // Clean the stdout data to ensure it's valid JSON
-          // Remove any trailing whitespace or newlines
           const cleanJson = stdoutData.trim();
 
-          // Check if the JSON is complete (starts with { and ends with })
+          // Check if the JSON is complete
           if (!cleanJson.startsWith("{") || !cleanJson.endsWith("}")) {
             console.error("Invalid JSON format:", cleanJson);
             throw new Error("Invalid JSON format received from Python script");
