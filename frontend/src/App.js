@@ -15,6 +15,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TransactionProvider } from "./context/TransactionContext";
 import { BudgetProvider } from "./context/BudgetContext";
 import { AIProvider } from "./context/AIContext";
+import { GamificationProvider } from "./context/GamificationContext";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
@@ -24,10 +25,12 @@ import Analytics from "./pages/Analytics";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import StatementUpload from "./pages/StatementUpload";
+import Achievements from "./pages/Achievements";
 
 // Components
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import NotificationBanner from "./components/NotificationBanner";
 
 const theme = createTheme({
   palette: {
@@ -66,75 +69,86 @@ function App() {
         <TransactionProvider>
           <BudgetProvider>
             <AIProvider>
-              <Router>
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight: "100vh",
-                  }}
-                >
-                  <Header />
-                  <Box component="main" sx={{ flexGrow: 1 }}>
-                    <Routes>
-                      {/* Public routes */}
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/register" element={<Register />} />
+              <GamificationProvider>
+                <Router>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      minHeight: "100vh",
+                    }}
+                  >
+                    <Header />
+                    <NotificationBanner />
+                    <Box component="main" sx={{ flexGrow: 1 }}>
+                      <Routes>
+                        {/* Public routes */}
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
 
-                      {/* Protected routes */}
-                      <Route
-                        path="/"
-                        element={
-                          <PrivateRoute>
-                            <Dashboard />
-                          </PrivateRoute>
-                        }
-                      />
-                      <Route
-                        path="/transactions"
-                        element={
-                          <PrivateRoute>
-                            <Transactions />
-                          </PrivateRoute>
-                        }
-                      />
-                      <Route
-                        path="/budgets"
-                        element={
-                          <PrivateRoute>
-                            <Budgets />
-                          </PrivateRoute>
-                        }
-                      />
-                      <Route
-                        path="/analytics"
-                        element={
-                          <PrivateRoute>
-                            <Analytics />
-                          </PrivateRoute>
-                        }
-                      />
-                      <Route
-                        path="/ai-budget"
-                        element={
-                          <PrivateRoute>
-                            <AIBudget />
-                          </PrivateRoute>
-                        }
-                      />
-                      <Route
-                        path="/upload-statement"
-                        element={
-                          <PrivateRoute>
-                            <StatementUpload />
-                          </PrivateRoute>
-                        }
-                      />
-                    </Routes>
+                        {/* Protected routes */}
+                        <Route
+                          path="/"
+                          element={
+                            <PrivateRoute>
+                              <Dashboard />
+                            </PrivateRoute>
+                          }
+                        />
+                        <Route
+                          path="/transactions"
+                          element={
+                            <PrivateRoute>
+                              <Transactions />
+                            </PrivateRoute>
+                          }
+                        />
+                        <Route
+                          path="/budgets"
+                          element={
+                            <PrivateRoute>
+                              <Budgets />
+                            </PrivateRoute>
+                          }
+                        />
+                        <Route
+                          path="/analytics"
+                          element={
+                            <PrivateRoute>
+                              <Analytics />
+                            </PrivateRoute>
+                          }
+                        />
+                        <Route
+                          path="/ai-budget"
+                          element={
+                            <PrivateRoute>
+                              <AIBudget />
+                            </PrivateRoute>
+                          }
+                        />
+                        <Route
+                          path="/upload-statement"
+                          element={
+                            <PrivateRoute>
+                              <StatementUpload />
+                            </PrivateRoute>
+                          }
+                        />
+                        <Route
+                          path="/achievements"
+                          element={
+                            <PrivateRoute>
+                              <Achievements />
+                            </PrivateRoute>
+                          }
+                        />
+                      </Routes>
+                    </Box>
+                    <Footer />
                   </Box>
-                  <Footer />
-                </Box>
-              </Router>
+                </Router>
+              </GamificationProvider>
             </AIProvider>
           </BudgetProvider>
         </TransactionProvider>

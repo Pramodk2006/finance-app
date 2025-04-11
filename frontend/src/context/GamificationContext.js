@@ -67,12 +67,15 @@ export const GamificationProvider = ({ children }) => {
 
   // Calculate experience needed for next level
   const experienceForNextLevel = () => {
-    return level * 100;
+    // Make level progression more gradual with a steeper curve
+    return Math.floor(100 * Math.pow(1.5, level - 1));
   };
 
   // Add experience and check for level up
   const addExperience = (amount, reason) => {
-    const newExperience = experience + amount;
+    // Cap experience awards to prevent rapid leveling
+    const cappedAmount = Math.min(amount, 50);
+    const newExperience = experience + cappedAmount;
     setExperience(newExperience);
     
     const requiredExperience = experienceForNextLevel();

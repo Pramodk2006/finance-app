@@ -12,11 +12,11 @@ import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
 import { styled } from '@mui/material/styles';
 
-const VoiceButton = styled(IconButton)(({ theme, isListening }) => ({
-  backgroundColor: isListening ? theme.palette.error.main : theme.palette.primary.main,
+const VoiceButton = styled(IconButton)(({ theme, $isListening }) => ({
+  backgroundColor: $isListening ? theme.palette.error.main : theme.palette.primary.main,
   color: 'white',
   '&:hover': {
-    backgroundColor: isListening ? theme.palette.error.dark : theme.palette.primary.dark,
+    backgroundColor: $isListening ? theme.palette.error.dark : theme.palette.primary.dark,
   },
   width: 56,
   height: 56,
@@ -306,7 +306,7 @@ const VoiceAssistant = ({ onTransactionDetected }) => {
       
       <VoiceButton 
         onClick={toggleListening} 
-        isListening={isListening}
+        $isListening={isListening}
         aria-label={isListening ? "Stop listening" : "Start listening"}
       >
         {isListening ? <MicOffIcon /> : <MicIcon />}

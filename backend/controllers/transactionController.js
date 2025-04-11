@@ -256,6 +256,39 @@ const getTransactionStats = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get transactions by category
+// @route   GET /api/transactions/category/:category
+// @access  Private
+const getTransactionsByCategory = asyncHandler(async (req, res) => {
+  const { category } = req.params;
+  const transactions = await Transaction.find({
+    user: req.user._id,
+    category: category.toLowerCase()
+  }).sort({ date: -1 });
+
+  res.json(transactions);
+});
+
+// @desc    Get recurring transactions
+// @route   GET /api/transactions/recurring
+// @access  Private
+const getRecurringTransactions = asyncHandler(async (req, res) => {
+  const transactions = await Transaction.find({
+    user: req.user._id,
+    isRecurring: true
+  }).sort({ date: -1 });
+
+  res.json(transactions);
+});
+
+// @desc    Scan receipt and create transaction
+// @route   POST /api/transactions/scan-receipt
+// @access  Private
+const scanReceipt = asyncHandler(async (req, res) => {
+  // TODO: Implement receipt scanning logic
+  res.status(501).json({ message: "Receipt scanning not implemented yet" });
+});
+
 module.exports = {
   createTransaction,
   getTransactions,
@@ -263,4 +296,7 @@ module.exports = {
   updateTransaction,
   deleteTransaction,
   getTransactionStats,
+  getTransactionsByCategory,
+  getRecurringTransactions,
+  scanReceipt
 };

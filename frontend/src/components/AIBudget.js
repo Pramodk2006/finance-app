@@ -10,6 +10,8 @@ import {
   Grid,
   Card,
   CardContent,
+  Tooltip as MuiTooltip,
+  IconButton,
 } from "@mui/material";
 import { Line } from "react-chartjs-2";
 import {
@@ -21,9 +23,13 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from "chart.js";
 import { TransactionContext } from "../context/TransactionContext";
 import { useAuth } from "../context/AuthContext";
+import InfoIcon from '@mui/icons-material/Info';
+import ZoomInIcon from '@mui/icons-material/ZoomIn';
+import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 
 // Register Chart.js components
 ChartJS.register(
@@ -33,7 +39,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 const AIBudget = () => {
@@ -41,6 +48,8 @@ const AIBudget = () => {
   const [loading, setLoading] = useState(false);
   const [predictions, setPredictions] = useState(null);
   const [error, setError] = useState("");
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [selectedPoint, setSelectedPoint] = useState(null);
   const { transactions } = useContext(TransactionContext);
   const { user } = useAuth();
   const chartRef = useRef(null);
@@ -135,6 +144,7 @@ const AIBudget = () => {
       }
 
       setPredictions(data.data);
+      setSelectedPoint(null);
     } catch (err) {
       setError(err.message || "Failed to get budget predictions");
       console.error("Error details:", err); // Debug log
@@ -143,8 +153,45 @@ const AIBudget = () => {
     }
   };
 
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.2, 3));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
+  };
+
+  const handleChartClick = (event, elements) => {
+    if (elements && elements.length > 0) {
+      const index = elements[0].index;
+      const datasetIndex = elements[0].datasetIndex;
+      const value = predictions.forecast_data.values[index];
+      const date = predictions.forecast_data.dates[index];
+      
+      setSelectedPoint({
+        date,
+        value,
+        upperBound: predictions.forecast_data.upper_bound[index],
+        lowerBound: predictions.forecast_data.lower_bound[index]
+      });
+    } else {
+      setSelectedPoint(null);
+    }
+  };
+
   const renderPredictions = () => {
     if (!predictions) return null;
+
+    // Create a gradient for the confidence interval
+    const ctx = document.getElementById('budget-forecast-chart');
+    let gradient;
+    
+    if (ctx) {
+      const context = ctx.getContext('2d');
+      gradient = context.createLinearGradient(0, 0, 0, 400);
+      gradient.addColorStop(0, 'rgba(255, 99, 132, 0.2)');
+      gradient.addColorStop(1, 'rgba(255, 99, 132, 0.05)');
+    }
 
     const chartData = {
       labels: predictions.forecast_data.dates,
@@ -154,21 +201,36 @@ const AIBudget = () => {
           data: predictions.forecast_data.values,
           fill: false,
           borderColor: "rgb(75, 192, 192)",
-          tension: 0.1,
+          backgroundColor: "rgba(75, 192, 192, 0.5)",
+          tension: 0.4, // Smoother curve
+          pointRadius: 5,
+          pointHoverRadius: 8,
+          pointBackgroundColor: "rgb(75, 192, 192)",
+          pointBorderColor: "white",
+          pointBorderWidth: 2,
+          pointHoverBackgroundColor: "rgb(75, 192, 192)",
+          pointHoverBorderColor: "white",
+          pointHoverBorderWidth: 2,
         },
         {
           label: "Upper Bound",
           data: predictions.forecast_data.upper_bound,
-          fill: false,
+          fill: 1, // Fill to the next dataset
+          backgroundColor: gradient || "rgba(255, 99, 132, 0.1)",
           borderColor: "rgba(255, 99, 132, 0.2)",
-          borderDash: [5, 5],
+          borderWidth: 1,
+          pointRadius: 0,
+          tension: 0.4,
         },
         {
           label: "Lower Bound",
           data: predictions.forecast_data.lower_bound,
-          fill: false,
+          fill: 0, // Fill from the previous dataset
+          backgroundColor: gradient || "rgba(255, 99, 132, 0.1)",
           borderColor: "rgba(255, 99, 132, 0.2)",
-          borderDash: [5, 5],
+          borderWidth: 1,
+          pointRadius: 0,
+          tension: 0.4,
         },
       ],
     };
@@ -222,9 +284,51 @@ const AIBudget = () => {
           <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Spending Forecast
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6">
+                    Spending Forecast
+                  </Typography>
+                  <Box>
+                    <MuiTooltip title="Zoom out">
+                      <IconButton onClick={handleZoomOut} size="small">
+                        <ZoomOutIcon />
+                      </IconButton>
+                    </MuiTooltip>
+                    <MuiTooltip title="Zoom in">
+                      <IconButton onClick={handleZoomIn} size="small">
+                        <ZoomInIcon />
+                      </IconButton>
+                    </MuiTooltip>
+                    <MuiTooltip title="Click on data points to see details">
+                      <IconButton size="small">
+                        <InfoIcon />
+                      </IconButton>
+                    </MuiTooltip>
+                  </Box>
+                </Box>
+                
+                {selectedPoint && (
+                  <Paper elevation={3} sx={{ p: 2, mb: 2, bgcolor: 'rgba(75, 192, 192, 0.1)' }}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Selected Point: {selectedPoint.date}
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={4}>
+                        <Typography variant="body2" color="text.secondary">Predicted Value</Typography>
+                        <Typography variant="body1">${Math.abs(selectedPoint.value).toLocaleString()}</Typography>
+                      </Grid>
+                      <Grid item xs={4}>
+                        <Typography variant="body2" color="text.secondary">Upper Bound</Typography>
+                        <Typography variant="body1">${Math.abs(selectedPoint.upperBound).toLocaleString()}</Typography>
+                      </Grid>
+                      <Grid item xs={4}>
+                        <Typography variant="body2" color="text.secondary">Lower Bound</Typography>
+                        <Typography variant="body1">${Math.abs(selectedPoint.lowerBound).toLocaleString()}</Typography>
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                )}
+                
                 <Box height={400}>
                   <Line
                     ref={chartRef}
@@ -239,14 +343,53 @@ const AIBudget = () => {
                               `$${Math.abs(value).toLocaleString()}`,
                           },
                         },
+                        x: {
+                          grid: {
+                            display: false,
+                          },
+                        },
                       },
                       plugins: {
                         tooltip: {
+                          mode: 'index',
+                          intersect: false,
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          titleColor: '#000',
+                          bodyColor: '#000',
+                          borderColor: '#ddd',
+                          borderWidth: 1,
+                          padding: 10,
                           callbacks: {
-                            label: (context) =>
-                              `$${Math.abs(context.raw).toLocaleString()}`,
+                            label: (context) => {
+                              const label = context.dataset.label || '';
+                              const value = context.raw;
+                              return `${label}: $${Math.abs(value).toLocaleString()}`;
+                            },
                           },
                         },
+                        legend: {
+                          position: 'top',
+                        },
+                      },
+                      interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false,
+                      },
+                      onClick: handleChartClick,
+                      animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart',
+                      },
+                      responsive: true,
+                      zoom: {
+                        wheel: {
+                          enabled: true,
+                        },
+                        pinch: {
+                          enabled: true,
+                        },
+                        mode: 'xy',
                       },
                     }}
                     id="budget-forecast-chart"

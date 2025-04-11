@@ -6,18 +6,36 @@ const Transaction = require("../models/transactionModel");
 // Helper function to get financial data
 const getFinancialData = async (userId) => {
   try {
-    const transactions = await Transaction.find({ user: userId })
+    // Get user's transactions
+    const transactions = await Transaction.find({ userId: userId })
       .sort({ date: -1 })
-      .limit(10);
+      .limit(50);
+
+    // Get spending by category
+    const spendingByCategory = await Transaction.aggregate([
+      {
+        $match: { userId: userId, type: "expense" }
+      },
+      { $group: { _id: "$category", total: { $sum: "$amount" } } },
+    ]);
+
+    // Get income by category
+    const incomeByCategory = await Transaction.aggregate([
+      {
+        $match: { userId: userId, type: "income" }
+      },
+      { $group: { _id: "$category", total: { $sum: "$amount" } } },
+    ]);
+
     const totalTransactions = await Transaction.countDocuments({
-      user: userId,
+      userId: userId,
     });
     const totalSpent = await Transaction.aggregate([
-      { $match: { user: userId, type: "expense" } },
+      { $match: { userId: userId, type: "expense" } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
     const totalIncome = await Transaction.aggregate([
-      { $match: { user: userId, type: "income" } },
+      { $match: { userId: userId, type: "income" } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
 
@@ -26,6 +44,8 @@ const getFinancialData = async (userId) => {
       totalTransactions,
       totalSpent: totalSpent[0]?.total || 0,
       totalIncome: totalIncome[0]?.total || 0,
+      spendingByCategory,
+      incomeByCategory,
     };
   } catch (error) {
     console.error("Error getting financial data:", error);

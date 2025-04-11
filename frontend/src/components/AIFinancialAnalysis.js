@@ -31,6 +31,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
 
 const AIFinancialAnalysis = ({ transactions }) => {
@@ -51,6 +52,8 @@ const AIFinancialAnalysis = ({ transactions }) => {
         transactions.map((t) => ({
           amount: t.amount,
           type: typeof t.amount,
+          date: t.date,
+          type: t.type
         }))
       );
       calculateSpendingTrends();
@@ -58,31 +61,47 @@ const AIFinancialAnalysis = ({ transactions }) => {
   }, [transactions]);
 
   const calculateSpendingTrends = () => {
+    if (!transactions || transactions.length === 0) {
+      console.warn('No transactions available for spending trends');
+      return;
+    }
+
     // Group transactions by date and calculate daily totals
     const dailyTotals = transactions.reduce((acc, transaction) => {
-      const date = transaction.date.split("T")[0];
+      // Skip transactions with invalid dates
+      if (!transaction.date) {
+        console.warn('Transaction missing date:', transaction);
+        return acc;
+      }
+
+      // Handle both string and Date objects
+      const date = typeof transaction.date === 'string' 
+        ? transaction.date.split('T')[0] 
+        : new Date(transaction.date).toISOString().split('T')[0];
+
       if (!acc[date]) {
         acc[date] = { date, expenses: 0, income: 0 };
       }
-
-      console.log("Processing transaction:", {
-        amount: transaction.amount,
-        type: typeof transaction.amount,
-        isNumber: !isNaN(transaction.amount),
-      });
 
       const amount =
         typeof transaction.amount === "string"
           ? parseFloat(transaction.amount.replace(/[^0-9.-]+/g, ""))
           : parseFloat(transaction.amount);
 
+      if (isNaN(amount)) {
+        console.warn('Invalid amount:', transaction.amount);
+        return acc;
+      }
+
       if (transaction.type === "expense") {
         acc[date].expenses += amount;
-      } else {
+      } else if (transaction.type === "income") {
         acc[date].income += amount;
       }
       return acc;
     }, {});
+
+    console.log('Daily totals:', dailyTotals);
 
     // Convert to array and sort by date
     const trendData = Object.values(dailyTotals)
@@ -92,6 +111,7 @@ const AIFinancialAnalysis = ({ transactions }) => {
         date: new Date(day.date).toLocaleDateString(),
       }));
 
+    console.log('Processed trend data:', trendData);
     setSpendingTrends(trendData);
   };
 
@@ -198,7 +218,25 @@ const AIFinancialAnalysis = ({ transactions }) => {
   };
 
   const renderSpendingTrends = () => {
-    if (!spendingTrends?.length) return null;
+    console.log('Rendering spending trends with data:', spendingTrends);
+    
+    if (!spendingTrends || spendingTrends.length === 0) {
+      console.log('No spending trends data available');
+      return (
+        <Box mb={3}>
+          <Typography variant="h6" gutterBottom>
+            Spending Trends
+          </Typography>
+          <Card variant="outlined">
+            <CardContent>
+              <Typography color="textSecondary">
+                No spending data available for visualization
+              </Typography>
+            </CardContent>
+          </Card>
+        </Box>
+      );
+    }
 
     return (
       <Box mb={3}>
@@ -214,6 +252,7 @@ const AIFinancialAnalysis = ({ transactions }) => {
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
+                  <Legend />
                   <Line
                     type="monotone"
                     dataKey="expenses"

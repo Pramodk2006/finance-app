@@ -27,7 +27,7 @@ const getSpendingAnalytics = async (userId, period = "month") => {
 
   // Add debug logs to verify the query parameters and results
   console.log("Analytics query parameters:", {
-    user: userId,
+    userId: userId,
     type: "expense",
     dateRange: { startDate, endDate: now },
   });
@@ -36,7 +36,7 @@ const getSpendingAnalytics = async (userId, period = "month") => {
   const expenses = await Transaction.aggregate([
     {
       $match: {
-        user: userId,
+        userId: userId,
         type: "expense",
       },
     },
@@ -90,7 +90,7 @@ const getSpendingAnalytics = async (userId, period = "month") => {
   const previousExpenses = await Transaction.aggregate([
     {
       $match: {
-        user: userId,
+        userId: userId,
         type: "expense",
       },
     },
@@ -195,7 +195,7 @@ const getSpendingInsights = async (userId) => {
   const transactions = await Transaction.aggregate([
     {
       $match: {
-        user: userId,
+        userId: userId,
         type: "expense",
       },
     },

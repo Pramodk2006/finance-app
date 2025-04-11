@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -16,6 +16,7 @@ import {
   Divider,
   Paper,
   Alert,
+  Button,
 } from "@mui/material";
 import {
   BarChart,
@@ -53,14 +54,18 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [period]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Check if user is logged in
+      const token = localStorage.getItem("userToken");
+      if (!token) {
+        setError("Please log in to view analytics");
+        return;
+      }
+
       console.log("Fetching analytics for period:", period);
 
       const [analyticsData, insightsData] = await Promise.all([
@@ -68,29 +73,133 @@ const Analytics = () => {
         api.get("/analytics/insights"),
       ]);
 
-      console.log("Analytics Data:", analyticsData.data);
-      console.log("Insights Data:", insightsData.data);
+      console.log("Raw Analytics Data:", analyticsData);
+      console.log("Raw Insights Data:", insightsData);
 
-      // Validate and log the structure of analytics data
-      if (
-        !analyticsData.data ||
-        !Array.isArray(analyticsData.data.timeSeriesData)
-      ) {
-        console.error("Invalid analytics data structure:", analyticsData.data);
-        throw new Error("Invalid analytics data structure");
+      // Validate and transform the data
+      if (!analyticsData.data) {
+        throw new Error("No analytics data received");
       }
 
-      // Validate and log the structure of insights data
-      if (!insightsData.data) {
-        console.error("Invalid insights data structure:", insightsData.data);
-        throw new Error("Invalid insights data structure");
-      }
+      // Transform time series data for the chart
+      const timeSeriesData = analyticsData.data.timeSeriesData?.map(item => ({
+        date: new Date(item.date).toLocaleDateString(),
+        amount: parseFloat(item.amount) || 0
+      })) || [];
 
-      setAnalytics(analyticsData.data);
+      // Transform category data for the pie chart and bar chart
+      const categoryData = analyticsData.data.categories?.map(item => ({
+        category: item.category || "Uncategorized",
+        amount: parseFloat(item.currentTotal) || 0,
+        currentTotal: parseFloat(item.currentTotal) || 0,
+        previousTotal: parseFloat(item.previousTotal) || 0
+      })) || [];
+
+      console.log("Transformed Time Series Data:", timeSeriesData);
+      console.log("Transformed Category Data:", categoryData);
+
+      // Update state with transformed data
+      setAnalytics({
+        ...analyticsData.data,
+        timeSeriesData,
+        categories: categoryData
+      });
       setInsights(insightsData.data);
     } catch (error) {
       console.error("Failed to fetch analytics:", error);
-      setError("Failed to load analytics data. Please try again later.");
+      setError(error.message || "Failed to load analytics data");
+    } finally {
+      setLoading(false);
+    }
+  }, [period]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  const createSampleTransactions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Get current user ID from localStorage
+      const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+      const currentUserId = userData._id;
+      
+      if (!currentUserId) {
+        setError("User ID not found. Please log in again.");
+        return;
+      }
+      
+      console.log("Creating sample transactions for user:", currentUserId);
+      
+      // Create sample transactions for the current user
+      const sampleTransactions = [
+        {
+          description: "Sample Grocery Shopping",
+          amount: 150.50,
+          type: "expense",
+          category: "Groceries",
+          date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+          originalDescription: "Sample Grocery Shopping",
+          userId: currentUserId // Use userId instead of user
+        },
+        {
+          description: "Sample Restaurant",
+          amount: 75.25,
+          type: "expense",
+          category: "Dining",
+          date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+          originalDescription: "Sample Restaurant",
+          userId: currentUserId
+        },
+        {
+          description: "Sample Salary",
+          amount: 3000.00,
+          type: "income",
+          category: "Salary",
+          date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
+          originalDescription: "Sample Salary",
+          userId: currentUserId
+        },
+        {
+          description: "Sample Utilities",
+          amount: 120.00,
+          type: "expense",
+          category: "Utilities",
+          date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+          originalDescription: "Sample Utilities",
+          userId: currentUserId
+        }
+      ];
+      
+      console.log("Sample transactions to create:", sampleTransactions);
+      
+      // Create each transaction
+      const createdTransactions = [];
+      for (const transaction of sampleTransactions) {
+        try {
+          const response = await api.post("/transactions", transaction);
+          console.log("Transaction created:", response.data);
+          createdTransactions.push(response.data);
+        } catch (error) {
+          console.error("Failed to create transaction:", error);
+          console.error("Transaction that failed:", transaction);
+        }
+      }
+      
+      console.log("Created transactions:", createdTransactions);
+      
+      if (createdTransactions.length === 0) {
+        setError("Failed to create any transactions. Please check the console for errors.");
+      } else {
+        // Refresh analytics
+        fetchAnalytics();
+      }
+      
+    } catch (error) {
+      console.error("Failed to create sample transactions:", error);
+      setError("Failed to create sample transactions. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -113,6 +222,108 @@ const Analytics = () => {
   console.log("Total Transactions:", totalTransactions);
   console.log("Average Transaction Amount:", averageTransactionAmount);
   console.log("Most Active Category:", mostActiveCategory);
+
+  const renderSpendingTrends = () => {
+    if (!analytics?.timeSeriesData?.length) {
+      return (
+        <Box p={2} textAlign="center">
+          <Typography color="textSecondary">
+            No spending data available for the selected period
+          </Typography>
+        </Box>
+      );
+    }
+
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={analytics.timeSeriesData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="date" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Line
+            type="monotone"
+            dataKey="amount"
+            stroke="#8884d8"
+            name="Spending"
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  };
+
+  const renderCategoryBreakdown = () => {
+    if (!analytics?.categories?.length) {
+      return (
+        <Box p={2} textAlign="center">
+          <Typography color="textSecondary">
+            No category data available for the selected period
+          </Typography>
+        </Box>
+      );
+    }
+
+    console.log("Rendering pie chart with data:", analytics.categories);
+
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <PieChart>
+          <Pie
+            data={analytics.categories}
+            dataKey="amount"
+            nameKey="category"
+            cx="50%"
+            cy="50%"
+            outerRadius={80}
+            label
+          >
+            {analytics.categories.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
+    );
+  };
+
+  const renderCategoryBarChart = () => {
+    if (!analytics?.categories?.length) {
+      return (
+        <Box p={2} textAlign="center">
+          <Typography color="textSecondary">
+            No category data available for the selected period
+          </Typography>
+        </Box>
+      );
+    }
+
+    console.log("Rendering bar chart with data:", analytics.categories);
+
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={analytics.categories}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="category" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Bar
+            dataKey="currentTotal"
+            fill="#8884d8"
+            name="Current Period"
+          />
+          <Bar
+            dataKey="previousTotal"
+            fill="#82ca9d"
+            name="Previous Period"
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  };
 
   if (loading) {
     return (
@@ -161,20 +372,30 @@ const Analytics = () => {
         alignItems="center"
         mb={3}
       >
-        <Typography variant="h4">Spending Analytics</Typography>
-        <FormControl variant="outlined" sx={{ minWidth: 120 }}>
-          <InputLabel>Period</InputLabel>
-          <Select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            label="Period"
+        <Typography variant="h4">Financial Analytics</Typography>
+        <Box display="flex" alignItems="center" gap={2}>
+          <FormControl variant="outlined" size="small">
+            <InputLabel id="period-select-label">Period</InputLabel>
+            <Select
+              labelId="period-select-label"
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              label="Period"
+            >
+              <MenuItem value="week">Week</MenuItem>
+              <MenuItem value="month">Month</MenuItem>
+              <MenuItem value="year">Year</MenuItem>
+            </Select>
+          </FormControl>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={createSampleTransactions}
+            disabled={loading}
           >
-            <MenuItem value="week">Last Week</MenuItem>
-            <MenuItem value="month">Last Month</MenuItem>
-            <MenuItem value="quarter">Last Quarter</MenuItem>
-            <MenuItem value="year">Last Year</MenuItem>
-          </Select>
-        </FormControl>
+            Create Sample Data
+          </Button>
+        </Box>
       </Box>
 
       <Grid container spacing={3}>
@@ -242,21 +463,7 @@ const Analytics = () => {
             <Typography variant="h6" gutterBottom>
               Spending Trends
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={spendingTrendsData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="amount"
-                  stroke="#8884d8"
-                  name="Spending"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {renderSpendingTrends()}
           </Paper>
         </Grid>
 
@@ -266,25 +473,7 @@ const Analytics = () => {
             <Typography variant="h6" gutterBottom>
               Spending by Category
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={categoryData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="category" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar
-                  dataKey="currentTotal"
-                  fill="#8884d8"
-                  name="Current Period"
-                />
-                <Bar
-                  dataKey="previousTotal"
-                  fill="#82ca9d"
-                  name="Previous Period"
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {renderCategoryBarChart()}
           </Paper>
         </Grid>
 
@@ -293,28 +482,7 @@ const Analytics = () => {
             <Typography variant="h6" gutterBottom>
               Category Distribution
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  dataKey="currentTotal"
-                  nameKey="category"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            {renderCategoryBreakdown()}
           </Paper>
         </Grid>
 

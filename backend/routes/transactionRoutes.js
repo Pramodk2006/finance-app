@@ -13,6 +13,9 @@ const {
   scanReceipt,
 } = require("../controllers/transactionController");
 const { protect } = require("../middleware/authMiddleware");
+const controller = require("../controllers/transactionController");
+console.log("Controller contents:", controller);
+
 
 // Configure multer for receipt uploads
 const upload = multer({
