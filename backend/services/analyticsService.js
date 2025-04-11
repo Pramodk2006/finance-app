@@ -47,6 +47,9 @@ const getSpendingAnalytics = async (userId, period = 'month') => {
     }
   ]);
 
+  // Debug log to check the expenses
+  console.log('Expenses by category:', expenses);
+
   // Get previous period for comparison
   const previousStartDate = new Date(startDate);
   previousStartDate.setMonth(previousStartDate.getMonth() - 1);
@@ -56,7 +59,8 @@ const getSpendingAnalytics = async (userId, period = 'month') => {
       $match: {
         user: userId,
         type: 'expense',
-        date: { $gte: previousStartDate, $lt: startDate }
+        // Remove date filtering for testing purposes
+        // date: { $gte: previousStartDate, $lt: startDate }
       }
     },
     {
@@ -66,6 +70,9 @@ const getSpendingAnalytics = async (userId, period = 'month') => {
       }
     }
   ]);
+
+  // Debug log to check the previous expenses
+  console.log('Previous expenses by category:', previousExpenses);
 
   // Calculate spending trends
   const trends = expenses.map(current => {
@@ -88,6 +95,19 @@ const getSpendingAnalytics = async (userId, period = 'month') => {
   const previousTotalSpending = previousExpenses.reduce((sum, category) => sum + category.total, 0);
   const totalChange = previousTotalSpending ? ((totalSpending - previousTotalSpending) / previousTotalSpending) * 100 : 0;
 
+  const timeSeriesData = expenses.flatMap(category => 
+    category.transactions.map(transaction => ({
+      date: transaction.date,
+      amount: transaction.amount,
+    }))
+  );
+
+  // Add debug logs to verify the data being processed and returned
+  console.log("Expenses fetched for analytics:", expenses);
+  console.log("Previous period expenses:", previousExpenses);
+  console.log("Trends calculated:", trends);
+  console.log("Total spending:", totalSpending, "Previous total spending:", previousTotalSpending, "Total change:", totalChange);
+
   return {
     period,
     startDate,
@@ -97,7 +117,8 @@ const getSpendingAnalytics = async (userId, period = 'month') => {
     totalChange,
     categories: trends,
     topCategories: trends.slice(0, 5),
-    monthlyAverage: totalSpending / (period === 'year' ? 12 : 1)
+    monthlyAverage: totalSpending / (period === 'year' ? 12 : 1),
+    timeSeriesData
   };
 };
 
@@ -111,7 +132,8 @@ const getSpendingInsights = async (userId) => {
   const transactions = await Transaction.find({
     user: userId,
     type: 'expense',
-    date: { $gte: threeMonthsAgo }
+    // Remove date filtering for testing purposes
+    // date: { $gte: threeMonthsAgo }
   }).sort({ date: -1 });
 
   // Analyze spending patterns
@@ -155,4 +177,4 @@ const getSpendingInsights = async (userId) => {
 module.exports = {
   getSpendingAnalytics,
   getSpendingInsights
-}; 
+};

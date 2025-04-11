@@ -95,8 +95,8 @@ export const TransactionProvider = ({ children }) => {
       await fetchTransactionStats();
       return newTransaction;
     } catch (error) {
-      setError("Failed to add transaction");
-      console.error(error);
+      console.error('Error in addTransaction:', error);
+      setError(error.message || "Failed to add transaction");
       throw error;
     }
   };

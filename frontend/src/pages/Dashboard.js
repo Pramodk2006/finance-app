@@ -14,12 +14,14 @@ import {
   Skeleton,
   LinearProgress,
   Button,
+  Alert,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { useTransactions } from "../context/TransactionContext";
 import { useBudget } from "../context/BudgetContext";
 import { useAuth } from "../context/AuthContext";
 import { Add as AddIcon } from "@mui/icons-material";
+import AIFinancialAnalysis from "../components/AIFinancialAnalysis";
 
 const DashboardContainer = styled(Container)(({ theme }) => ({
   marginTop: theme.spacing(4),
@@ -136,7 +138,7 @@ const Dashboard = () => {
   if (error) {
     return (
       <DashboardContainer>
-        <Typography color="error">{error}</Typography>
+        <Alert severity="error">{error}</Alert>
       </DashboardContainer>
     );
   }
@@ -357,19 +359,16 @@ const Dashboard = () => {
             <Typography variant="h6" component="h2" gutterBottom>
               AI Insights
             </Typography>
-            <Box>
-              {transactions && transactions.length > 0 ? (
-                <Typography variant="body2" component="div">
-                  Based on your spending patterns, our AI recommends creating a
-                  budget to better manage your finances.
-                </Typography>
-              ) : (
+            {transactions && transactions.length > 0 ? (
+              <AIFinancialAnalysis transactions={transactions} />
+            ) : (
+              <Box>
                 <Typography variant="body2" component="div">
                   Add more transactions to receive personalized financial
                   insights from our AI.
                 </Typography>
-              )}
-            </Box>
+              </Box>
+            )}
           </DashboardPaper>
         </Grid>
       </Grid>

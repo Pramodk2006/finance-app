@@ -6,56 +6,65 @@ const Budget = require("../models/Budget");
 // @route   POST /api/transactions
 // @access  Private
 const createTransaction = asyncHandler(async (req, res) => {
-  const {
-    description,
-    amount,
-    type,
-    category,
-    date,
-    isRecurring,
-    recurringFrequency,
-  } = req.body;
+  try {
+    const {
+      description,
+      amount,
+      type,
+      category,
+      date,
+      isRecurring,
+      recurringFrequency,
+    } = req.body;
 
-  // Create the transaction
-  const transaction = await Transaction.create({
-    user: req.user._id,
-    description,
-    amount,
-    type,
-    category,
-    date: date || Date.now(),
-    originalDescription: description, // Store original for AI training
-    isRecurring: isRecurring || false,
-    recurringFrequency: recurringFrequency || null,
-  });
+    if (!req.user || !req.user._id) {
+      res.status(401);
+      throw new Error('User not authenticated');
+    }
 
-  // If it's an expense, update the corresponding budget
-  if (type === "expense" && category) {
-    // Find the active budget for this category
-    const budget = await Budget.findOne({
-      user: req.user._id,
-      category: category,
-      isActive: true,
-      startDate: { $lte: new Date() },
-      $or: [{ endDate: { $gte: new Date() } }, { endDate: null }],
+    // Create the transaction with the authenticated user's ID
+    const transaction = await Transaction.create({
+      userId: req.user._id,
+      description,
+      amount,
+      type,
+      category,
+      date: date || Date.now(),
+      originalDescription: description,
+      aiCategorized: false,
+      isRecurring: isRecurring || false,
+      recurringFrequency: recurringFrequency || null,
     });
 
-    if (budget) {
-      // Ensure both values are numbers before adding
-      const currentSpent = parseFloat(budget.spent || 0);
-      const transactionAmount = parseFloat(amount);
+    // If it's an expense, update the corresponding budget
+    if (type === "expense" && category) {
+      // Find the active budget for this category
+      const budget = await Budget.findOne({
+        userId: req.user._id,
+        category: category,
+        isActive: true,
+        startDate: { $lte: new Date() },
+        $or: [{ endDate: { $gte: new Date() } }, { endDate: null }],
+      });
 
-      // Update the spent amount
-      budget.spent = currentSpent + transactionAmount;
-      await budget.save();
+      if (budget) {
+        // Ensure both values are numbers before adding
+        const currentSpent = parseFloat(budget.spent || 0);
+        const transactionAmount = parseFloat(amount);
+
+        // Update the spent amount
+        budget.spent = currentSpent + transactionAmount;
+        await budget.save();
+      }
     }
-  }
 
-  if (transaction) {
     res.status(201).json(transaction);
-  } else {
-    res.status(400);
-    throw new Error("Invalid transaction data");
+  } catch (error) {
+    console.error('Error creating transaction:', error);
+    res.status(500).json({ 
+      message: 'Failed to create transaction',
+      error: error.message 
+    });
   }
 });
 
@@ -63,7 +72,7 @@ const createTransaction = asyncHandler(async (req, res) => {
 // @route   GET /api/transactions
 // @access  Private
 const getTransactions = asyncHandler(async (req, res) => {
-  const transactions = await Transaction.find({ user: req.user._id }).sort({
+  const transactions = await Transaction.find({ userId: req.user._id }).sort({
     date: -1,
   });
   res.json(transactions);
@@ -75,7 +84,7 @@ const getTransactions = asyncHandler(async (req, res) => {
 const getTransactionById = asyncHandler(async (req, res) => {
   const transaction = await Transaction.findById(req.params.id);
 
-  if (transaction && transaction.user.toString() === req.user._id.toString()) {
+  if (transaction && transaction.userId.toString() === req.user._id.toString()) {
     res.json(transaction);
   } else {
     res.status(404);
@@ -89,7 +98,7 @@ const getTransactionById = asyncHandler(async (req, res) => {
 const updateTransaction = asyncHandler(async (req, res) => {
   const transaction = await Transaction.findById(req.params.id);
 
-  if (transaction && transaction.user.toString() === req.user._id.toString()) {
+  if (transaction && transaction.userId.toString() === req.user._id.toString()) {
     transaction.description = req.body.description || transaction.description;
     transaction.amount = req.body.amount || transaction.amount;
     transaction.type = req.body.type || transaction.type;
@@ -116,8 +125,8 @@ const updateTransaction = asyncHandler(async (req, res) => {
 const deleteTransaction = asyncHandler(async (req, res) => {
   const transaction = await Transaction.findById(req.params.id);
 
-  if (transaction && transaction.user.toString() === req.user._id.toString()) {
-    await transaction.deleteOne();
+  if (transaction && transaction.userId.toString() === req.user._id.toString()) {
+    await transaction.remove();
     res.json({ message: "Transaction removed" });
   } else {
     res.status(404);
@@ -150,18 +159,18 @@ const getTransactionStats = asyncHandler(async (req, res) => {
 
   // Get income and expense totals
   const incomeTotal = await Transaction.aggregate([
-    { $match: { user: req.user._id, type: "income", ...dateFilter } },
+    { $match: { userId: req.user._id, type: "income", ...dateFilter } },
     { $group: { _id: null, total: { $sum: "$amount" } } },
   ]);
 
   const expenseTotal = await Transaction.aggregate([
-    { $match: { user: req.user._id, type: "expense", ...dateFilter } },
+    { $match: { userId: req.user._id, type: "expense", ...dateFilter } },
     { $group: { _id: null, total: { $sum: "$amount" } } },
   ]);
 
   // Get category breakdown
   const categoryBreakdown = await Transaction.aggregate([
-    { $match: { user: req.user._id, ...dateFilter } },
+    { $match: { userId: req.user._id, ...dateFilter } },
     {
       $group: {
         _id: { category: "$category", type: "$type" },

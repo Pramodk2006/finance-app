@@ -1,0 +1,87 @@
+.transactions {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.transactions h1 {
+  margin-bottom: 2rem;
+  color: #333;
+  font-size: 2rem;
+}
+
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.transactions-table th,
+.transactions-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.transactions-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+}
+
+.transactions-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.transactions-table .expense {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.transactions-table .income {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.error {
+  text-align: center;
+  padding: 2rem;
+  color: #dc3545;
+  background-color: #f8d7da;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.no-transactions {
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .transactions {
+    padding: 1rem;
+  }
+
+  .transactions-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .transactions-table th,
+  .transactions-table td {
+    padding: 0.75rem;
+  }
+} 

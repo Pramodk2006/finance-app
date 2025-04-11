@@ -1,217 +1,357 @@
-const mongoose = require('mongoose');
-const Budget = require('../models/Budget');
-const Transaction = require('../models/transactionModel');
-const { detectSpendingPatterns } = require('./spendingPatternDetector');
+const mongoose = require("mongoose");
+const Budget = require("../models/Budget");
+const Transaction = require("../models/transactionModel");
+const { detectSpendingPatterns } = require("./spendingPatternDetector");
 
 // Generate budget recommendations based on spending patterns
-const generateBudgetRecommendations = async (userId, period = 'month') => {
+const generateBudgetRecommendations = async (userId, period = "month") => {
   try {
     // Get current budgets
     const currentBudgets = await Budget.find({
       user: mongoose.Types.ObjectId(userId),
-      period
+      period,
     });
 
     // Get spending patterns
     const spendingAnalysis = await detectSpendingPatterns(userId, period);
-    
+
     if (!spendingAnalysis.patterns || spendingAnalysis.patterns.length === 0) {
       return {
-        message: 'Not enough transaction data to generate budget recommendations',
-        recommendations: []
+        message:
+          "Not enough transaction data to generate budget recommendations",
+        recommendations: [],
       };
     }
 
     const recommendations = [];
     const categoryTotals = {};
-    
+
     // Extract top spending categories
-    const topCategories = spendingAnalysis.patterns.find(p => p.type === 'topCategories');
+    const topCategories = spendingAnalysis.patterns.find(
+      (p) => p.type === "topCategories"
+    );
     if (topCategories && topCategories.data) {
-      topCategories.data.forEach(cat => {
+      topCategories.data.forEach((cat) => {
         categoryTotals[cat.category] = cat.total;
       });
     }
-    
+
     // Get all expense transactions for the period
     const now = new Date();
     let startDate;
-    
-    if (period === 'month') {
+
+    if (period === "month") {
       startDate = new Date(now);
       startDate.setMonth(now.getMonth() - 1);
-    } else if (period === 'week') {
+    } else if (period === "week") {
       startDate = new Date(now);
       startDate.setDate(now.getDate() - 7);
     } else {
       startDate = new Date(now);
       startDate.setMonth(now.getMonth() - 1);
     }
-    
+
     const transactions = await Transaction.find({
       user: mongoose.Types.ObjectId(userId),
-      type: 'expense',
-      date: { $gte: startDate }
+      type: "expense",
+      date: { $gte: startDate },
     });
-    
+
     // Calculate category totals if not already done
     if (Object.keys(categoryTotals).length === 0) {
-      transactions.forEach(tx => {
+      transactions.forEach((tx) => {
         if (!categoryTotals[tx.category]) {
           categoryTotals[tx.category] = 0;
         }
         categoryTotals[tx.category] += tx.amount;
       });
     }
-    
+
     // Calculate total income
     const totalIncome = await Transaction.aggregate([
-      { 
-        $match: { 
+      {
+        $match: {
           user: mongoose.Types.ObjectId(userId),
-          type: 'income',
-          date: { $gte: startDate }
-        } 
+          type: "income",
+          date: { $gte: startDate },
+        },
       },
-      { 
-        $group: { 
-          _id: null, 
-          total: { $sum: '$amount' } 
-        } 
-      }
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$amount" },
+        },
+      },
     ]);
-    
+
     const monthlyIncome = totalIncome.length > 0 ? totalIncome[0].total : 0;
-    
+
     // 1. Recommend budgets for categories without budgets
     for (const [category, total] of Object.entries(categoryTotals)) {
-      const existingBudget = currentBudgets.find(b => b.category === category);
-      
+      const existingBudget = currentBudgets.find(
+        (b) => b.category === category
+      );
+
       if (!existingBudget) {
         // Round to nearest 10
         const recommendedAmount = Math.ceil(total / 10) * 10;
-        
+
         recommendations.push({
-          type: 'new',
+          type: "new",
           category,
           currentSpending: total,
           recommendedBudget: recommendedAmount,
-          reason: `Based on your spending of $${total.toFixed(2)} on ${category}.`
+          reason: `Based on your spending of $${total.toFixed(
+            2
+          )} on ${category}.`,
         });
       }
     }
-    
+
     // 2. Recommend adjustments to existing budgets
-    currentBudgets.forEach(budget => {
+    currentBudgets.forEach((budget) => {
       const actualSpending = categoryTotals[budget.category] || 0;
       const difference = actualSpending - budget.amount;
-      const percentDifference = budget.amount > 0 ? (difference / budget.amount) * 100 : 0;
-      
+      const percentDifference =
+        budget.amount > 0 ? (difference / budget.amount) * 100 : 0;
+
       // If spending is significantly higher or lower than budget
       if (Math.abs(percentDifference) > 20) {
         // Round to nearest 10
         const recommendedAmount = Math.ceil(actualSpending / 10) * 10;
-        
+
         recommendations.push({
-          type: 'adjustment',
+          type: "adjustment",
           category: budget.category,
           currentBudget: budget.amount,
           currentSpending: actualSpending,
           recommendedBudget: recommendedAmount,
           percentDifference: percentDifference,
-          reason: percentDifference > 0 
-            ? `You're consistently spending ${percentDifference.toFixed(0)}% more than your budget.`
-            : `You're consistently spending ${Math.abs(percentDifference).toFixed(0)}% less than your budget.`
+          reason:
+            percentDifference > 0
+              ? `You're consistently spending ${percentDifference.toFixed(
+                  0
+                )}% more than your budget.`
+              : `You're consistently spending ${Math.abs(
+                  percentDifference
+                ).toFixed(0)}% less than your budget.`,
         });
       }
     });
-    
+
     // 3. Recommend savings allocation if income > expenses
-    const totalExpenses = Object.values(categoryTotals).reduce((sum, amount) => sum + amount, 0);
+    const totalExpenses = Object.values(categoryTotals).reduce(
+      (sum, amount) => sum + amount,
+      0
+    );
     if (monthlyIncome > totalExpenses && monthlyIncome > 0) {
       const surplus = monthlyIncome - totalExpenses;
       const savingsPercentage = (surplus / monthlyIncome) * 100;
-      
+
       if (savingsPercentage < 20 && surplus > 0) {
         // Recommend increasing savings to 20% of income
         const recommendedSavings = monthlyIncome * 0.2;
         const additionalSavings = recommendedSavings - surplus;
-        
+
         recommendations.push({
-          type: 'savings',
+          type: "savings",
           currentSavings: surplus,
           recommendedSavings: recommendedSavings,
           additionalSavingsNeeded: additionalSavings,
           currentSavingsPercentage: savingsPercentage,
           targetSavingsPercentage: 20,
-          reason: `Financial experts recommend saving at least 20% of your income. You're currently saving ${savingsPercentage.toFixed(1)}%.`
+          reason: `Financial experts recommend saving at least 20% of your income. You're currently saving ${savingsPercentage.toFixed(
+            1
+          )}%.`,
         });
       }
     }
-    
+
     // 4. Recommend reducing spending in top categories if expenses > income
     if (totalExpenses > monthlyIncome && monthlyIncome > 0) {
       const deficit = totalExpenses - monthlyIncome;
       const topSpendingCategories = Object.entries(categoryTotals)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3);
-      
+
       topSpendingCategories.forEach(([category, amount]) => {
         // Recommend reducing by 10-20% depending on the deficit
-        const reductionPercentage = Math.min(30, Math.max(10, (deficit / totalExpenses) * 100));
+        const reductionPercentage = Math.min(
+          30,
+          Math.max(10, (deficit / totalExpenses) * 100)
+        );
         const recommendedReduction = amount * (reductionPercentage / 100);
         const newBudget = amount - recommendedReduction;
-        
+
         recommendations.push({
-          type: 'reduction',
+          type: "reduction",
           category,
           currentSpending: amount,
           recommendedBudget: Math.floor(newBudget / 10) * 10,
           reductionAmount: Math.ceil(recommendedReduction / 10) * 10,
           reductionPercentage: reductionPercentage,
-          reason: `You're spending more than your income. Reducing ${category} spending by ${reductionPercentage.toFixed(0)}% would help balance your budget.`
+          reason: `You're spending more than your income. Reducing ${category} spending by ${reductionPercentage.toFixed(
+            0
+          )}% would help balance your budget.`,
         });
       });
     }
-    
+
     // 5. Identify potential subscription services to cut
-    const recurringPattern = spendingAnalysis.patterns.find(p => p.type === 'recurring');
+    const recurringPattern = spendingAnalysis.patterns.find(
+      (p) => p.type === "recurring"
+    );
     if (recurringPattern && recurringPattern.data) {
       const smallRecurring = recurringPattern.data
-        .filter(item => item.amount < 50 && item.amount > 5)
+        .filter((item) => item.amount < 50 && item.amount > 5)
         .sort((a, b) => a.frequency - b.frequency);
-      
+
       if (smallRecurring.length > 0) {
         const leastUsed = smallRecurring[0];
         recommendations.push({
-          type: 'subscription',
+          type: "subscription",
           category: leastUsed.category,
           amount: leastUsed.amount,
           frequency: leastUsed.frequency,
           annualCost: leastUsed.amount * 12,
-          reason: `You have a recurring ${leastUsed.category} expense of $${leastUsed.amount.toFixed(2)} that appears infrequently. Consider if this subscription is worth $${(leastUsed.amount * 12).toFixed(2)} annually.`
+          reason: `You have a recurring ${
+            leastUsed.category
+          } expense of $${leastUsed.amount.toFixed(
+            2
+          )} that appears infrequently. Consider if this subscription is worth $${(
+            leastUsed.amount * 12
+          ).toFixed(2)} annually.`,
         });
       }
     }
-    
+
     return {
       recommendations,
       summary: {
         totalRecommendations: recommendations.length,
         potentialSavings: recommendations
-          .filter(r => r.type === 'reduction' || r.type === 'subscription')
+          .filter((r) => r.type === "reduction" || r.type === "subscription")
           .reduce((sum, r) => sum + (r.reductionAmount || r.amount || 0), 0),
         currentBudgets: currentBudgets.length,
         totalIncome: monthlyIncome,
-        totalExpenses: totalExpenses
-      }
+        totalExpenses: totalExpenses,
+      },
     };
   } catch (error) {
-    console.error('Error generating budget recommendations:', error);
+    console.error("Error generating budget recommendations:", error);
     throw error;
   }
 };
 
+const getBudgetRecommendations = async (metrics) => {
+  const recommendations = [];
+
+  try {
+    const { totalIncome, totalExpenses, topExpenseCategories, savingsRate } =
+      metrics;
+
+    // Basic budget allocation recommendations based on the 50/30/20 rule
+    const necessitiesTarget = totalIncome * 0.5; // 50% for needs
+    const wantsTarget = totalIncome * 0.3; // 30% for wants
+    const savingsTarget = totalIncome * 0.2; // 20% for savings
+
+    // Calculate current savings
+    const currentSavings = totalIncome - totalExpenses;
+    const currentSavingsPercent = (currentSavings / totalIncome) * 100;
+
+    // Savings recommendations
+    if (currentSavingsPercent < 20) {
+      recommendations.push({
+        type: "savings",
+        suggestion: `Your current savings rate is ${currentSavingsPercent.toFixed(
+          1
+        )}%, below the recommended 20%.`,
+        action: `Try to save at least $${(
+          savingsTarget - currentSavings
+        ).toFixed(2)} more per month.`,
+      });
+    }
+
+    // Analyze expense categories
+    Object.entries(topExpenseCategories).forEach(([category, amount]) => {
+      const categoryPercentage = (amount / totalIncome) * 100;
+
+      // Check if any single category exceeds 30% of income
+      if (categoryPercentage > 30) {
+        recommendations.push({
+          type: "category_alert",
+          suggestion: `${category} expenses are ${categoryPercentage.toFixed(
+            1
+          )}% of your income.`,
+          action: `Consider reducing ${category.toLowerCase()} expenses to below 30% of your income.`,
+        });
+      }
+    });
+
+    // Overall budget health
+    if (totalExpenses > totalIncome) {
+      recommendations.push({
+        type: "critical",
+        suggestion: "Your expenses exceed your income.",
+        action:
+          "Create a strict budget and identify non-essential expenses to cut.",
+      });
+    } else if (totalExpenses > totalIncome * 0.9) {
+      recommendations.push({
+        type: "warning",
+        suggestion: "Your expenses are over 90% of your income.",
+        action:
+          "Look for ways to reduce expenses and increase your savings buffer.",
+      });
+    }
+
+    // Specific budget allocations
+    const suggestedBudget = {
+      Housing: totalIncome * 0.3, // 30% for housing
+      Transportation: totalIncome * 0.15, // 15% for transportation
+      Food: totalIncome * 0.15, // 15% for food
+      Utilities: totalIncome * 0.1, // 10% for utilities
+      Healthcare: totalIncome * 0.1, // 10% for healthcare
+      Savings: totalIncome * 0.2, // 20% for savings
+    };
+
+    // Compare actual spending to suggested budget
+    Object.entries(topExpenseCategories).forEach(([category, amount]) => {
+      const normalizedCategory = category.toLowerCase();
+      Object.entries(suggestedBudget).forEach(
+        ([budgetCategory, suggestedAmount]) => {
+          if (
+            normalizedCategory.includes(budgetCategory.toLowerCase()) &&
+            amount > suggestedAmount
+          ) {
+            recommendations.push({
+              type: "budget_adjustment",
+              suggestion: `${category} expenses ($${amount.toFixed(
+                2
+              )}) exceed the recommended budget.`,
+              action: `Consider reducing ${category} expenses to around $${suggestedAmount.toFixed(
+                2
+              )} per month.`,
+            });
+          }
+        }
+      );
+    });
+
+    return recommendations;
+  } catch (error) {
+    console.error("Error generating budget recommendations:", error);
+    return [
+      {
+        type: "error",
+        suggestion: "Unable to generate detailed budget recommendations.",
+        action: "Please ensure all financial information is correctly entered.",
+      },
+    ];
+  }
+};
+
 module.exports = {
-  generateBudgetRecommendations
+  generateBudgetRecommendations,
+  getBudgetRecommendations,
 };

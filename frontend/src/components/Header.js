@@ -20,6 +20,7 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import ChatIcon from "@mui/icons-material/Chat";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { useState } from "react";
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
@@ -113,6 +114,13 @@ const Header = () => {
       >
         <SmartToyIcon sx={{ mr: 1 }} /> AI Budget
       </MenuItem>
+      <MenuItem
+        component={RouterLink}
+        to="/upload-statement"
+        onClick={handleMenuClose}
+      >
+        <UploadFileIcon sx={{ mr: 1 }} /> Upload Statement
+      </MenuItem>
       {user ? (
         <MenuItem onClick={handleLogout}>Logout</MenuItem>
       ) : (
@@ -189,6 +197,13 @@ const Header = () => {
                   startIcon={<SmartToyIcon />}
                 >
                   AI Budget
+                </NavButton>
+                <NavButton
+                  component={RouterLink}
+                  to="/upload-statement"
+                  startIcon={<UploadFileIcon />}
+                >
+                  Upload Statement
                 </NavButton>
               </>
             )}

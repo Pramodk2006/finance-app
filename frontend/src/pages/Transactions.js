@@ -25,6 +25,8 @@ import { useTransactions } from "../context/TransactionContext";
 const TransactionsContainer = styled(Container)(({ theme }) => ({
   marginTop: theme.spacing(4),
   marginBottom: theme.spacing(4),
+  display: 'flex',
+  flexDirection: 'column'
 }));
 
 const TransactionsPaper = styled(Paper)(({ theme }) => ({
@@ -183,59 +185,57 @@ const Transactions = () => {
           </Button>
         </Box>
 
-        <TransactionsPaper elevation={2}>
-          <div style={{ height: 400, width: "100%" }}>
-            {transactions.length > 0 ? (
-              <DataGrid
-                rows={transactions.map((transaction) => ({
-                  ...transaction,
-                  id:
-                    transaction._id ||
-                    transaction.id ||
-                    Math.random().toString(36).substr(2, 9),
-                }))}
-                columns={columns}
-                pageSize={5}
-                rowsPerPageOptions={[5, 10, 20]}
-                checkboxSelection
-                disableSelectionOnClick
-                autoHeight
-                density="comfortable"
-                getRowHeight={() => "auto"}
-                components={{
-                  NoRowsOverlay: () => (
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        height: "100%",
-                      }}
-                    >
-                      <Typography variant="body1" color="textSecondary">
-                        No transactions yet. Add your first transaction to get
-                        started.
-                      </Typography>
-                    </Box>
-                  ),
-                }}
-              />
-            ) : (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%",
-                }}
-              >
-                <Typography variant="body1" color="textSecondary">
-                  No transactions yet. Add your first transaction to get
-                  started.
-                </Typography>
-              </Box>
-            )}
-          </div>
+        <TransactionsPaper elevation={2} sx={{ flex: 1 }}>
+          {transactions.length > 0 ? (
+            <DataGrid
+              rows={transactions.map((transaction) => ({
+                ...transaction,
+                id:
+                  transaction._id ||
+                  transaction.id ||
+                  Math.random().toString(36).substr(2, 9),
+              }))}
+              columns={columns}
+              pageSize={5}
+              rowsPerPageOptions={[5, 10, 20]}
+              checkboxSelection
+              disableSelectionOnClick
+              autoHeight={true}
+              density="comfortable"
+              getRowHeight={() => "auto"}
+              components={{
+                NoRowsOverlay: () => (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      height: "100%",
+                    }}
+                  >
+                    <Typography variant="body1" color="textSecondary">
+                      No transactions yet. Add your first transaction to get
+                      started.
+                    </Typography>
+                  </Box>
+                ),
+              }}
+            />
+          ) : (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100%",
+              }}
+            >
+              <Typography variant="body1" color="textSecondary">
+                No transactions yet. Add your first transaction to get
+                started.
+              </Typography>
+            </Box>
+          )}
         </TransactionsPaper>
 
         {/* Add Transaction Dialog */}

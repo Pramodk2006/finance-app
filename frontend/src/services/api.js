@@ -8,6 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true // Enable sending cookies
 });
 
 // Add request interceptor to include auth token in headers
@@ -16,10 +17,25 @@ api.interceptors.request.use(
     const token = localStorage.getItem('userToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      config.headers['Content-Type'] = config.headers['Content-Type'] || 'application/json';
     }
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle token expiration
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('userData');
+      window.location.href = '/login';
+    }
     return Promise.reject(error);
   }
 );
@@ -89,6 +105,7 @@ export const createTransaction = async (transactionData) => {
     const response = await api.post('/transactions', transactionData);
     return response.data;
   } catch (error) {
+    console.error('Error creating transaction:', error.response?.data);
     throw error.response?.data?.message || 'Failed to create transaction';
   }
 };

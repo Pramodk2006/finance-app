@@ -8,6 +8,7 @@ import {
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import AIBudget from "./components/AIBudget";
+import { Box } from "@mui/material";
 
 // Context Providers
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -22,6 +23,7 @@ import Budgets from "./pages/Budgets";
 import Analytics from "./pages/Analytics";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import StatementUpload from "./pages/StatementUpload";
 
 // Components
 import Header from "./components/Header";
@@ -58,57 +60,67 @@ function App() {
           <BudgetProvider>
             <AIProvider>
               <Router>
-                <Header />
-                <main>
-                  <Routes>
-                    {/* Public routes */}
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
+                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                  <Header />
+                  <Box component="main" sx={{ flexGrow: 1 }}>
+                    <Routes>
+                      {/* Public routes */}
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
 
-                    {/* Protected routes */}
-                    <Route
-                      path="/"
-                      element={
-                        <PrivateRoute>
-                          <Dashboard />
-                        </PrivateRoute>
-                      }
-                    />
-                    <Route
-                      path="/transactions"
-                      element={
-                        <PrivateRoute>
-                          <Transactions />
-                        </PrivateRoute>
-                      }
-                    />
-                    <Route
-                      path="/budgets"
-                      element={
-                        <PrivateRoute>
-                          <Budgets />
-                        </PrivateRoute>
-                      }
-                    />
-                    <Route
-                      path="/analytics"
-                      element={
-                        <PrivateRoute>
-                          <Analytics />
-                        </PrivateRoute>
-                      }
-                    />
-                    <Route
-                      path="/ai-budget"
-                      element={
-                        <PrivateRoute>
-                          <AIBudget />
-                        </PrivateRoute>
-                      }
-                    />
-                  </Routes>
-                </main>
-                <Footer />
+                      {/* Protected routes */}
+                      <Route
+                        path="/"
+                        element={
+                          <PrivateRoute>
+                            <Dashboard />
+                          </PrivateRoute>
+                        }
+                      />
+                      <Route
+                        path="/transactions"
+                        element={
+                          <PrivateRoute>
+                            <Transactions />
+                          </PrivateRoute>
+                        }
+                      />
+                      <Route
+                        path="/budgets"
+                        element={
+                          <PrivateRoute>
+                            <Budgets />
+                          </PrivateRoute>
+                        }
+                      />
+                      <Route
+                        path="/analytics"
+                        element={
+                          <PrivateRoute>
+                            <Analytics />
+                          </PrivateRoute>
+                        }
+                      />
+                      <Route
+                        path="/ai-budget"
+                        element={
+                          <PrivateRoute>
+                            <AIBudget />
+                          </PrivateRoute>
+                        }
+                      />
+                      <Route
+                        path="/upload-statement"
+                        element={
+                          <PrivateRoute>
+                            <StatementUpload />
+                          </PrivateRoute>
+                        }
+                      />
+                    </Routes>
+                  </Box>
+                  <Footer />
+                </Box>
               </Router>
             </AIProvider>
           </BudgetProvider>
