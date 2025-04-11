@@ -140,6 +140,16 @@ const Analytics = () => {
     );
   }
 
+  if (spendingTrendsData.length === 0 && categoryData.length === 0) {
+    return (
+      <Box p={3}>
+        <Alert severity="info">
+          No analytics available. Add some expenses to see insights!
+        </Alert>
+      </Box>
+    );
+  }
+
   return (
     <Box p={3}>
       <Box

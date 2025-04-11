@@ -25,11 +25,18 @@ const getSpendingAnalytics = async (userId, period = 'month') => {
       startDate.setMonth(now.getMonth() - 1);
   }
 
+  // Add debug logs to verify the query parameters and results
+  console.log("Querying transactions with:", {
+    user: userId,
+    type: 'expense',
+    date: { $gte: startDate, $lte: now },
+  });
+
   // Get all expenses in the period
   const expenses = await Transaction.aggregate([
     {
       $match: {
-        user: userId,
+        userId: userId, // Corrected field name
         type: 'expense',
         date: { $gte: startDate, $lte: now }
       }
@@ -46,6 +53,8 @@ const getSpendingAnalytics = async (userId, period = 'month') => {
       $sort: { total: -1 }
     }
   ]);
+
+  console.log("Fetched expenses:", expenses);
 
   // Debug log to check the expenses
   console.log('Expenses by category:', expenses);

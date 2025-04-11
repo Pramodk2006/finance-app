@@ -7,6 +7,8 @@ const { getSpendingAnalytics, getSpendingInsights } = require('../services/analy
 const getSpendingAnalyticsController = asyncHandler(async (req, res) => {
   const { period } = req.query;
   const analytics = await getSpendingAnalytics(req.user._id, period);
+  // Add debug logs to verify the response being sent to the frontend
+  console.log("Sending analytics response:", analytics);
   res.json(analytics);
 });
 
@@ -21,4 +23,4 @@ const getSpendingInsightsController = asyncHandler(async (req, res) => {
 module.exports = {
   getSpendingAnalyticsController,
   getSpendingInsightsController
-}; 
+};
